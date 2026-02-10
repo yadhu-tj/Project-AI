@@ -1,0 +1,11 @@
+{
+    "zone_offset": 0.15,
+    "walk_threshold": 0.015,
+    "walk_timeout": 0.25,
+    "required_steps": 2,
+    "camera_retry_interval": 5,
+    "camera_max_retries": 10,
+    "calibration_duration": 3.0,
+    "smoothing_buffer_size": 5,
+    "fps_target": 30
+}

@@ -1,0 +1,49 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Aero-Run | Cyberpunk MVP</title>
+
+    <link rel="stylesheet" href="./assets/css/style.css">
+
+    <!-- Libraries -->
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/socket.io/4.7.2/socket.io.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/gsap/3.12.2/gsap.min.js"></script>
+</head>
+
+<body>
+
+    <div id="game-container">
+        <!-- HUD -->
+        <div id="status-bar">
+            SYSTEM: <span id="status-text" style="color: #ff0055;">OFFLINE</span>
+        </div>
+
+        <!-- 3D World (Managed by JS) -->
+        <div id="world">
+            <!-- Walls spawn here... -->
+        </div>
+
+        <!-- The Hero Character -->
+        <div id="hero">
+            <div class="head"></div>
+            <div class="body"></div>
+            <div class="arm left"></div>
+            <div class="arm right"></div>
+            <div class="leg left"></div>
+            <div class="leg right"></div>
+        </div>
+    </div>
+
+    <!-- Version Tag -->
+    <h1 style="position: absolute; bottom: 20px; right: 20px; color: #333; font-size: 10px; z-index: 999;">
+        Aero-Run v2.0 | 3D Engine
+    </h1>
+
+    <!-- Single Engine Entry Point -->
+    <script src="./assets/js/game_engine.js"></script>
+</body>
+
+</html>

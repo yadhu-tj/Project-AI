@@ -1,0 +1,27 @@
+# MediaPipe model files
+*.task
+
+# OS files
+.DS_Store
+Thumbs.db
+
+# IDEs
+.vscode/
+.idea/
+
+# Dependencies
+node_modules/
+venv/
+
+# Environment variables
+.env
+.env.local
+
+# Build outputs
+dist/
+build/
+__pycache__/
+*.pyc
+
+# Logs
+*.log
