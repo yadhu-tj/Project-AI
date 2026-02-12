@@ -1,173 +1,153 @@
-const socket = io('http://localhost:5000');
-const world = document.getElementById('world');
-const hero = document.getElementById('hero');
-const statusText = document.getElementById('status-text');
+import * as THREE from "https://cdn.jsdelivr.net/npm/three@0.160/build/three.module.js";
 
-// Game State
-let isRunning = false;
-let currentZone = "CENTER";
-let isTurning = false; // LOCK to prevent spamming
-let currentSpeed = 0;
+const socket = io();
 
-// Build the World
-const segments = [];
-for (let i = 0; i < 20; i++) createSegment(i * -800);
+// UI
+const statusEl = document.getElementById("status");
+const stepsEl = document.getElementById("steps");
+const turnEl = document.getElementById("turn");
 
-function createSegment(z) {
-    const el = document.createElement('div');
-    el.className = 'wall-segment';
-    el.style.transform = `translateZ(${z}px)`;
+// Motion data
+let momentum = 0;
+let turn = "CENTER";
+let leftArm = 0;
+let rightArm = 0;
 
-    const left = document.createElement('div'); left.className = 'face-left';
-    const right = document.createElement('div'); right.className = 'face-right';
-    const floor = document.createElement('div'); floor.className = 'face-floor';
+// Scene
+const scene = new THREE.Scene();
+scene.background = new THREE.Color(0x111111);
 
-    el.appendChild(left); el.appendChild(right); el.appendChild(floor);
-    world.appendChild(el);
-    segments.push({ el, z });
+const camera = new THREE.PerspectiveCamera(
+    70,
+    window.innerWidth / window.innerHeight,
+    0.1,
+    1000
+);
+
+const renderer = new THREE.WebGLRenderer({ antialias: true });
+renderer.setSize(window.innerWidth, window.innerHeight);
+document.body.appendChild(renderer.domElement);
+
+// Lights
+const light = new THREE.DirectionalLight(0xffffff, 1);
+light.position.set(5, 10, 5);
+scene.add(light);
+scene.add(new THREE.AmbientLight(0xffffff, 0.3));
+
+// Floor
+const floor = new THREE.Mesh(
+    new THREE.PlaneGeometry(200, 200),
+    new THREE.MeshStandardMaterial({ color: 0x222222 })
+);
+floor.rotation.x = -Math.PI / 2;
+scene.add(floor);
+
+// Maze walls
+function createWall(x, z, width, depth) {
+    const wall = new THREE.Mesh(
+        new THREE.BoxGeometry(width, 5, depth),
+        new THREE.MeshStandardMaterial({ color: 0x5555ff })
+    );
+    wall.position.set(x, 2.5, z);
+    scene.add(wall);
 }
 
-// =============================================================
-// SOCKET — Connection Reliability
-// =============================================================
+// Simple maze corridor
+createWall(0, -10, 10, 1);
+createWall(-5, -5, 1, 10);
+createWall(5, -5, 1, 10);
+createWall(0, 0, 10, 1);
+createWall(5, 5, 1, 10);
+createWall(0, 10, 10, 1);
 
-socket.on('connect', () => {
-    statusText.style.color = '#00ff00';
-    statusText.innerText = 'CONNECTED';
-    console.log('[Aero-Run] Connected to server.');
+// Character
+const character = new THREE.Group();
+
+// Body
+const body = new THREE.Mesh(
+    new THREE.BoxGeometry(1, 2, 0.5),
+    new THREE.MeshStandardMaterial({ color: 0x00ff88 })
+);
+body.position.y = 1;
+character.add(body);
+
+// Head
+const head = new THREE.Mesh(
+    new THREE.BoxGeometry(0.8, 0.8, 0.8),
+    new THREE.MeshStandardMaterial({ color: 0xffffaa })
+);
+head.position.y = 2.4;
+character.add(head);
+
+// Arms
+const armMaterial = new THREE.MeshStandardMaterial({ color: 0xff4444 });
+const armGeometry = new THREE.BoxGeometry(0.3, 1.5, 0.3);
+armGeometry.translate(0, -0.75, 0); // Shift pivot to top
+
+const leftArmMesh = new THREE.Mesh(armGeometry, armMaterial);
+leftArmMesh.position.set(-0.9, 2.0, 0); // Shoulder position
+character.add(leftArmMesh);
+
+const rightArmMesh = new THREE.Mesh(armGeometry, armMaterial);
+rightArmMesh.position.set(0.9, 2.0, 0); // Shoulder position
+character.add(rightArmMesh);
+
+scene.add(character);
+
+// Camera offset
+const cameraOffset = new THREE.Vector3(0, 4, 6);
+
+// Socket events
+socket.on("telemetry", (data) => {
+    statusEl.textContent = data.status;
+    stepsEl.textContent = data.steps;
+    turnEl.textContent = data.turn;
+
+    momentum = data.momentum;
+    turn = data.turn;
+    leftArm = data.l_arm;
+    rightArm = data.r_arm;
 });
 
-socket.on('disconnect', () => {
-    statusText.style.color = '#ff0055';
-    statusText.innerText = 'DISCONNECTED — RECONNECTING...';
-    hero.classList.remove('running');
-    currentSpeed = 0;
-    console.warn('[Aero-Run] Disconnected from server.');
-});
+// Animation loop
+function animate() {
+    requestAnimationFrame(animate);
 
-socket.on('connect_error', (err) => {
-    statusText.style.color = '#ff0055';
-    statusText.innerText = 'CONNECTION ERROR';
-    console.error('[Aero-Run] Connection error:', err.message);
-});
-
-// =============================================================
-// SOCKET — Game Update Listener
-// =============================================================
-
-socket.on('game_update', (data) => {
-
-    // --- CALIBRATION STATES ---
-    if (data.state === 'CALIBRATING') {
-        statusText.style.color = '#ffaa00';
-        statusText.innerText = `CALIBRATING... ${data.progress || 0}%`;
-        hero.classList.remove('running');
-        currentSpeed = 0;
-        return;
+    // Turning
+    if (turn === "LEFT") {
+        character.rotation.y += 0.03;
+    } else if (turn === "RIGHT") {
+        character.rotation.y -= 0.03;
     }
 
-    if (data.state === 'CALIBRATED') {
-        statusText.style.color = '#00ff00';
-        statusText.innerText = 'CALIBRATED ✓ — START WALKING!';
-        return;
-    }
+    // Forward movement
+    const forward = new THREE.Vector3(0, 0, -1);
+    forward.applyQuaternion(character.quaternion);
+    character.position.addScaledVector(forward, momentum * 0.1);
 
-    // --- CAMERA ERROR STATES ---
-    if (data.state === 'CAMERA_ERROR') {
-        statusText.style.color = '#ff0055';
-        statusText.innerText = '⚠ CAMERA ERROR — RECONNECTING...';
-        hero.classList.remove('running');
-        currentSpeed = 0;
-        return;
-    }
+    // Arm animation (0 = Down, 180 = Up)
+    // Left Arm: Rotate Negative Z (Outward/Up)
+    leftArmMesh.rotation.z = -THREE.MathUtils.degToRad(leftArm);
 
-    if (data.state === 'CAMERA_RECOVERED') {
-        statusText.style.color = '#00ff00';
-        statusText.innerText = 'CAMERA RECOVERED ✓';
-        return;
-    }
+    // Right Arm: Rotate Positive Z (Outward/Up)
+    rightArmMesh.rotation.z = THREE.MathUtils.degToRad(rightArm);
 
-    // --- NORMAL GAMEPLAY ---
-    if (data.state === "WALKING") {
-        statusText.style.color = '#00ff00';
-        hero.classList.add('running');
-        if (!isTurning) currentSpeed += (25 - currentSpeed) * 0.1;
-    } else {
-        statusText.style.color = '#888888';
-        hero.classList.remove('running');
-        currentSpeed *= 0.9;
-    }
-    statusText.innerText = `STATE: ${data.state} | ZONE: ${data.zone}`;
+    // Camera follow
+    const camPos = cameraOffset.clone();
+    camPos.applyQuaternion(character.quaternion);
+    camPos.add(character.position);
 
-    // TURN LOGIC
-    if (!isTurning && Math.abs(currentSpeed) > 5) {
-        if (data.zone === "LEFT") triggerTurn("LEFT");
-        else if (data.zone === "RIGHT") triggerTurn("RIGHT");
-    }
-});
+    camera.position.lerp(camPos, 0.1);
+    camera.lookAt(character.position);
 
-// =============================================================
-// TURN EVENT
-// =============================================================
-
-function triggerTurn(dir) {
-    isTurning = true;
-    const targetRot = (dir === "LEFT") ? -90 : 90;
-
-    // A. Visuals: Rotate the World 90 Degrees
-    gsap.to(world, {
-        rotationY: targetRot,
-        duration: 0.5,
-        ease: "power2.inOut",
-        onComplete: resetWorld
-    });
-
-    // B. Hero Animation: Lean into it
-    hero.style.transition = "transform 0.5s ease";
-    hero.style.transform = `rotateY(${targetRot * 0.5}deg)`;
+    renderer.render(scene, camera);
 }
 
-// =============================================================
-// RESET (THE MAGIC TRICK FIX)
-// =============================================================
+animate();
 
-function resetWorld() {
-    gsap.set(world, { rotationY: 0 });
-
-    hero.style.transition = "transform 0.2s ease";
-    hero.style.transform = `rotateY(0deg)`;
-
-    segments.forEach((seg, index) => {
-        seg.z = index * -800;
-        seg.el.className = 'wall-segment';
-        seg.el.style.transform = `translateZ(${seg.z}px)`;
-    });
-
-    isTurning = false;
-}
-
-// =============================================================
-// GAME LOOP
-// =============================================================
-
-function update() {
-    if (currentSpeed > 0.1 && !isTurning) {
-        segments.forEach(seg => {
-            seg.z += currentSpeed;
-            if (seg.z > 600) {
-                seg.z -= (segments.length * 800);
-
-                seg.el.className = 'wall-segment';
-
-                // 20% Chance for New Junction
-                if (Math.random() > 0.8) {
-                    seg.el.classList.add(Math.random() > 0.5 ? 'turn-left' : 'turn-right');
-                }
-            }
-            seg.el.style.transform = `translateZ(${seg.z}px)`;
-        });
-    }
-    requestAnimationFrame(update);
-}
-
-update();
+// Resize
+window.addEventListener("resize", () => {
+    camera.aspect = window.innerWidth / window.innerHeight;
+    camera.updateProjectionMatrix();
+    renderer.setSize(window.innerWidth, window.innerHeight);
+});
