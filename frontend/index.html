@@ -1,18 +1,49 @@
 <!DOCTYPE html>
 <html lang="en">
+
 <head>
     <meta charset="UTF-8">
-    <title>Maze Prototype</title>
+    <title>Character Control Test</title>
     <link rel="stylesheet" href="./assets/css/style.css">
 </head>
+
 <body>
+
     <div id="info">
-        <p>Status: <span id="status">...</span></p>
-        <p>Steps: <span id="steps">0</span></p>
-        <p>Turn: <span id="turn">CENTER</span></p>
+        <h1>Motion Link v1.0</h1>
+
+        <div class="stat-row">
+            <span class="stat-label">System Status</span>
+            <span class="stat-value">
+                <span id="status-indicator"></span>
+                <span id="status">Connecting...</span>
+            </span>
+        </div>
+
+        <div class="stat-row" style="margin-top: 15px;">
+            <span class="stat-label">Momentum</span>
+            <span class="stat-value" id="momentum-val">0%</span>
+        </div>
+        <div class="progress-container">
+            <div id="momentum-bar" class="progress-bar"></div>
+        </div>
+
+        <div class="stat-row" style="margin-top: 15px;">
+            <span class="stat-label">Calibration</span>
+            <span class="stat-value" id="calib-val">0%</span>
+        </div>
+        <div class="progress-container">
+            <div id="calib-bar" class="progress-bar" style="width: 0%"></div>
+        </div>
+
+        <div class="stat-row" style="margin-top: 20px; font-size: 0.8rem; color: #666;">
+            <div>Steps: <span id="step-count" style="color: #fff">0</span></div>
+            <div>Turn: <span id="turn-signal" style="color: #fff">CENTER</span></div>
+        </div>
     </div>
 
     <script src="https://cdn.socket.io/4.7.2/socket.io.min.js"></script>
     <script type="module" src="./assets/js/game_engine.js"></script>
 </body>
+
 </html>
