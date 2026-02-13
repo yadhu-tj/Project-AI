@@ -1,21 +1,14 @@
 import * as THREE from "https://cdn.jsdelivr.net/npm/three@0.160/build/three.module.js";
+import { InputAdapter } from "../../game/input_adapter.js";
+import { CharacterController } from "../../game/character_control.js";
+import { CameraController } from "../../game/camera_controller.js";
 
-const socket = io();
 
-// UI
-const statusEl = document.getElementById("status");
-const stepsEl = document.getElementById("steps");
-const turnEl = document.getElementById("turn");
-
-// Motion data
-let momentum = 0;
-let turn = "CENTER";
-let leftArm = 0;
-let rightArm = 0;
 
 // Scene
 const scene = new THREE.Scene();
-scene.background = new THREE.Color(0x111111);
+scene.background = new THREE.Color(0xa0a0a0);
+scene.fog = new THREE.Fog(0xa0a0a0, 10, 50);
 
 const camera = new THREE.PerspectiveCamera(
     70,
@@ -23,126 +16,97 @@ const camera = new THREE.PerspectiveCamera(
     0.1,
     1000
 );
+camera.position.set(0, 2, 5);
 
 const renderer = new THREE.WebGLRenderer({ antialias: true });
 renderer.setSize(window.innerWidth, window.innerHeight);
+renderer.setPixelRatio(window.devicePixelRatio);
+renderer.shadowMap.enabled = true;
+renderer.shadowMap.type = THREE.PCFSoftShadowMap;
 document.body.appendChild(renderer.domElement);
 
 // Lights
-const light = new THREE.DirectionalLight(0xffffff, 1);
-light.position.set(5, 10, 5);
-scene.add(light);
-scene.add(new THREE.AmbientLight(0xffffff, 0.3));
+const hemiLight = new THREE.HemisphereLight(0xffffff, 0x444444);
+hemiLight.position.set(0, 20, 0);
+scene.add(hemiLight);
 
-// Floor
-const floor = new THREE.Mesh(
-    new THREE.PlaneGeometry(200, 200),
-    new THREE.MeshStandardMaterial({ color: 0x222222 })
+const dirLight = new THREE.DirectionalLight(0xffffff, 1.5); // Increased intensity
+dirLight.position.set(3, 10, 10);
+dirLight.castShadow = true;
+dirLight.shadow.camera.top = 2;
+dirLight.shadow.camera.bottom = -2;
+dirLight.shadow.camera.left = -2;
+dirLight.shadow.camera.right = 2;
+dirLight.shadow.camera.near = 0.1;
+dirLight.shadow.camera.far = 40;
+scene.add(dirLight);
+
+// Floor / Grid
+const mesh = new THREE.Mesh(
+    new THREE.PlaneGeometry(100, 100),
+    new THREE.MeshPhongMaterial({ color: 0x999999, depthWrite: false })
 );
-floor.rotation.x = -Math.PI / 2;
-scene.add(floor);
+mesh.rotation.x = -Math.PI / 2;
+mesh.receiveShadow = true;
+scene.add(mesh);
 
-// Maze walls
-function createWall(x, z, width, depth) {
-    const wall = new THREE.Mesh(
-        new THREE.BoxGeometry(width, 5, depth),
-        new THREE.MeshStandardMaterial({ color: 0x5555ff })
-    );
-    wall.position.set(x, 2.5, z);
-    scene.add(wall);
-}
+const grid = new THREE.GridHelper(100, 40, 0x000000, 0x000000);
+grid.material.opacity = 0.2;
+grid.material.transparent = true;
+scene.add(grid);
 
-// Simple maze corridor
-createWall(0, -10, 10, 1);
-createWall(-5, -5, 1, 10);
-createWall(5, -5, 1, 10);
-createWall(0, 0, 10, 1);
-createWall(5, 5, 1, 10);
-createWall(0, 10, 10, 1);
+// UI Elements
+const uiIds = {
+    status: document.getElementById("status"),
+    indicator: document.getElementById("status-indicator"),
+    momentumVal: document.getElementById("momentum-val"),
+    momentumBar: document.getElementById("momentum-bar"),
+    calibVal: document.getElementById("calib-val"),
+    calibBar: document.getElementById("calib-bar"),
+    steps: document.getElementById("step-count"),
+    turn: document.getElementById("turn-signal"),
+};
 
-// Character
-const character = new THREE.Group();
+// Input
+const input = new InputAdapter((data) => {
+    // 1. Status Text & Indicator
+    uiIds.status.textContent = data.status;
+    uiIds.indicator.className = ""; // reset
 
-// Body
-const body = new THREE.Mesh(
-    new THREE.BoxGeometry(1, 2, 0.5),
-    new THREE.MeshStandardMaterial({ color: 0x00ff88 })
-);
-body.position.y = 1;
-character.add(body);
+    if (data.status === "CALIBRATING") uiIds.indicator.classList.add("calibrating");
+    else if (data.status === "NO PLAYER") uiIds.indicator.classList.add("disconnected");
+    else uiIds.indicator.classList.add("active");
 
-// Head
-const head = new THREE.Mesh(
-    new THREE.BoxGeometry(0.8, 0.8, 0.8),
-    new THREE.MeshStandardMaterial({ color: 0xffffaa })
-);
-head.position.y = 2.4;
-character.add(head);
+    // 2. Momentum
+    const momPct = Math.min(100, Math.round(data.momentum * 100));
+    uiIds.momentumVal.textContent = momPct + "%";
+    uiIds.momentumBar.style.width = momPct + "%";
 
-// Arms
-const armMaterial = new THREE.MeshStandardMaterial({ color: 0xff4444 });
-const armGeometry = new THREE.BoxGeometry(0.3, 1.5, 0.3);
-armGeometry.translate(0, -0.75, 0); // Shift pivot to top
+    // 3. Calibration
+    const calibPct = Math.min(100, Math.round(data.calibration * 100));
+    uiIds.calibVal.textContent = calibPct + "%";
+    uiIds.calibBar.style.width = calibPct + "%";
 
-const leftArmMesh = new THREE.Mesh(armGeometry, armMaterial);
-leftArmMesh.position.set(-0.9, 2.0, 0); // Shoulder position
-character.add(leftArmMesh);
-
-const rightArmMesh = new THREE.Mesh(armGeometry, armMaterial);
-rightArmMesh.position.set(0.9, 2.0, 0); // Shoulder position
-character.add(rightArmMesh);
-
-scene.add(character);
-
-// Camera offset
-const cameraOffset = new THREE.Vector3(0, 4, 6);
-
-// Socket events
-socket.on("telemetry", (data) => {
-    statusEl.textContent = data.status;
-    stepsEl.textContent = data.steps;
-    turnEl.textContent = data.turn;
-
-    momentum = data.momentum;
-    turn = data.turn;
-    leftArm = data.l_arm;
-    rightArm = data.r_arm;
+    // 4. Stats
+    uiIds.steps.textContent = data.steps;
+    uiIds.turn.textContent = data.turn;
 });
 
-// Animation loop
+// Character
+const character = new CharacterController(scene, input);
+
+// Camera
+const camController = new CameraController(camera, character);
+
+// Loop
 function animate() {
     requestAnimationFrame(animate);
 
-    // Turning
-    if (turn === "LEFT") {
-        character.rotation.y += 0.03;
-    } else if (turn === "RIGHT") {
-        character.rotation.y -= 0.03;
-    }
-
-    // Forward movement
-    const forward = new THREE.Vector3(0, 0, -1);
-    forward.applyQuaternion(character.quaternion);
-    character.position.addScaledVector(forward, momentum * 0.1);
-
-    // Arm animation (0 = Down, 180 = Up)
-    // Left Arm: Rotate Negative Z (Outward/Up)
-    leftArmMesh.rotation.z = -THREE.MathUtils.degToRad(leftArm);
-
-    // Right Arm: Rotate Positive Z (Outward/Up)
-    rightArmMesh.rotation.z = THREE.MathUtils.degToRad(rightArm);
-
-    // Camera follow
-    const camPos = cameraOffset.clone();
-    camPos.applyQuaternion(character.quaternion);
-    camPos.add(character.position);
-
-    camera.position.lerp(camPos, 0.1);
-    camera.lookAt(character.position);
+    character.update();
+    camController.update();
 
     renderer.render(scene, camera);
 }
-
 animate();
 
 // Resize
