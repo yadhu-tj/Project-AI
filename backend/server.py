@@ -10,10 +10,11 @@ import numpy as np
 # --- 0. SERVER SETUP ---
 sio = socketio.Server(cors_allowed_origins='*')
 
-# Serve frontend files
+# Serve frontend file
 static_files = {
     '/': '../frontend/index.html',
     '/assets': '../frontend/assets',
+    '/game': '../frontend/game',
 }
 
 app = socketio.WSGIApp(sio, static_files=static_files)
@@ -77,12 +78,17 @@ center_lock_active = False
 print("✅ SERVER RUNNING... (Waiting for Dashboard)")
 
 def calculate_arm_angle(shoulder, wrist):
-    """Calculates relative arm lift (0 = Down, 180 = Up)"""
+    """Calculates relative arm lift (0 = Down, 180 = Up) with Deadzone"""
     # Adjusted for full range (Hands Down to Hands Up)
     # Offset 0.4 maps ~T-pose (diff=0) to ~90 deg
-    # Multiplier 240 ensures reaching 180 deg (Hands Above Head) is easy
-    lift = (shoulder.y - wrist.y) + 0.4
-    final_angle = max(0, min(180, lift * 240))
+    
+    # DEADZONE (To prevent walking jitter)
+    lift_raw = (shoulder.y - wrist.y) + 0.4
+    
+    if lift_raw < 0.25: # Threshold: Only raise if significantly lifted
+        return 0
+        
+    final_angle = max(0, min(180, lift_raw * 240))
     return int(final_angle)
 
 def game_loop():
