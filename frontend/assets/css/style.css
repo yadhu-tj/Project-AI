@@ -1,17 +1,107 @@
 body {
     margin: 0;
     overflow: hidden;
-    background: black;
-    font-family: Arial, sans-serif;
+    font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+    color: white;
 }
 
 #info {
     position: absolute;
-    top: 10px;
-    left: 10px;
-    color: white;
-    background: rgba(0,0,0,0.5);
-    padding: 10px;
-    border-radius: 8px;
-    z-index: 10;
+    top: 20px;
+    left: 20px;
+    width: 300px;
+    padding: 20px;
+    background: rgba(0, 0, 0, 0.6);
+    backdrop-filter: blur(10px);
+    border-radius: 12px;
+    border: 1px solid rgba(255, 255, 255, 0.1);
+    box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
+    user-select: none;
+}
+
+h1 {
+    font-size: 1.2rem;
+    margin: 0 0 15px 0;
+    font-weight: 600;
+    color: #e0e0e0;
+    text-transform: uppercase;
+    letter-spacing: 1px;
+    border-bottom: 1px solid rgba(255, 255, 255, 0.2);
+    padding-bottom: 10px;
+}
+
+.stat-row {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin-bottom: 10px;
+    font-size: 0.9rem;
+}
+
+.stat-label {
+    color: #aaa;
+}
+
+.stat-value {
+    font-weight: bold;
+    color: #fff;
+}
+
+/* Status Indicator */
+#status-indicator {
+    display: inline-block;
+    width: 10px;
+    height: 10px;
+    border-radius: 50%;
+    margin-right: 8px;
+    background-color: #555;
+}
+
+#status-indicator.active {
+    background-color: #4ade80;
+    box-shadow: 0 0 8px #4ade80;
+}
+
+#status-indicator.calibrating {
+    background-color: #fbbf24;
+    animation: pulse 1.5s infinite;
+}
+
+#status-indicator.disconnected {
+    background-color: #ef4444;
+}
+
+/* Progress Bars */
+.progress-container {
+    width: 100%;
+    height: 6px;
+    background: rgba(255, 255, 255, 0.1);
+    border-radius: 3px;
+    margin-top: 5px;
+    overflow: hidden;
+}
+
+.progress-bar {
+    height: 100%;
+    background: linear-gradient(90deg, #3b82f6, #8b5cf6);
+    width: 0%;
+    transition: width 0.1s linear;
+}
+
+#calib-bar {
+    background: linear-gradient(90deg, #f59e0b, #fbbf24);
+}
+
+@keyframes pulse {
+    0% {
+        opacity: 1;
+    }
+
+    50% {
+        opacity: 0.5;
+    }
+
+    100% {
+        opacity: 1;
+    }
 }
