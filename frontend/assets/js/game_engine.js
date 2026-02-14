@@ -2,13 +2,13 @@ import * as THREE from "https://cdn.jsdelivr.net/npm/three@0.160/build/three.mod
 import { InputAdapter } from "../../game/input_adapter.js";
 import { CharacterController } from "../../game/character_control.js";
 import { CameraController } from "../../game/camera_controller.js";
-
-
+import { LevelManager } from "../../game/world/LevelManager.js";
+import { GameManager } from "../../game/logic/GameManager.js"; // Import GameManager
 
 // Scene
 const scene = new THREE.Scene();
-scene.background = new THREE.Color(0xa0a0a0);
-scene.fog = new THREE.Fog(0xa0a0a0, 10, 50);
+scene.background = new THREE.Color(0x050505);
+scene.fog = new THREE.Fog(0x050505, 10, 60);
 
 const camera = new THREE.PerspectiveCamera(
     70,
@@ -26,34 +26,16 @@ renderer.shadowMap.type = THREE.PCFSoftShadowMap;
 document.body.appendChild(renderer.domElement);
 
 // Lights
-const hemiLight = new THREE.HemisphereLight(0xffffff, 0x444444);
-hemiLight.position.set(0, 20, 0);
+const hemiLight = new THREE.HemisphereLight(0xffffff, 0x444444, 0.6);
 scene.add(hemiLight);
 
-const dirLight = new THREE.DirectionalLight(0xffffff, 1.5); // Increased intensity
+const dirLight = new THREE.DirectionalLight(0xffffff, 1.0);
 dirLight.position.set(3, 10, 10);
 dirLight.castShadow = true;
-dirLight.shadow.camera.top = 2;
-dirLight.shadow.camera.bottom = -2;
-dirLight.shadow.camera.left = -2;
-dirLight.shadow.camera.right = 2;
-dirLight.shadow.camera.near = 0.1;
-dirLight.shadow.camera.far = 40;
 scene.add(dirLight);
 
-// Floor / Grid
-const mesh = new THREE.Mesh(
-    new THREE.PlaneGeometry(100, 100),
-    new THREE.MeshPhongMaterial({ color: 0x999999, depthWrite: false })
-);
-mesh.rotation.x = -Math.PI / 2;
-mesh.receiveShadow = true;
-scene.add(mesh);
-
-const grid = new THREE.GridHelper(100, 40, 0x000000, 0x000000);
-grid.material.opacity = 0.2;
-grid.material.transparent = true;
-scene.add(grid);
+// --- LEVEL MANAGER ---
+const levelManager = new LevelManager(scene);
 
 // UI Elements
 const uiIds = {
@@ -95,6 +77,9 @@ const input = new InputAdapter((data) => {
 // Character
 const character = new CharacterController(scene, input);
 
+// --- GAME MANAGER ---
+const gameManager = new GameManager(character, levelManager, input);
+
 // Camera
 const camController = new CameraController(camera, character);
 
@@ -102,8 +87,12 @@ const camController = new CameraController(camera, character);
 function animate() {
     requestAnimationFrame(animate);
 
+    gameManager.update(); // Update Logic (Collision)
     character.update();
     camController.update();
+
+    // UPDATE WORLD
+    levelManager.update(character.group.position.z);
 
     renderer.render(scene, camera);
 }
