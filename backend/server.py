@@ -1,4 +1,5 @@
 import eventlet
+eventlet.monkey_patch()
 import socketio
 import cv2
 import mediapipe as mp
@@ -77,19 +78,18 @@ center_lock_active = False
 
 print("✅ SERVER RUNNING... (Waiting for Dashboard)")
 
-def calculate_arm_angle(shoulder, wrist):
-    """Calculates relative arm lift (0 = Down, 180 = Up) with Deadzone"""
-    # Adjusted for full range (Hands Down to Hands Up)
-    # Offset 0.4 maps ~T-pose (diff=0) to ~90 deg
-    
-    # DEADZONE (To prevent walking jitter)
-    lift_raw = (shoulder.y - wrist.y) + 0.4
-    
-    if lift_raw < 0.25: # Threshold: Only raise if significantly lifted
-        return 0
-        
-    final_angle = max(0, min(180, lift_raw * 240))
-    return int(final_angle)
+@sio.event
+def connect(sid, environ):
+    print(f"✅ CLIENT CONNECTED: {sid}")
+
+@sio.event
+def disconnect(sid):
+    print(f"❌ CLIENT DISCONNECTED: {sid}")
+
+# --- IMPORT MOTION LOGIC ---
+from motion_logic.gesture_detection import calculate_arm_angle, calculate_wiper_angle
+
+# ... (Removed local definitions) ...
 
 def game_loop():
     global system_state, prev_y, current_momentum, last_step_time, step_count
@@ -115,6 +115,8 @@ def game_loop():
         calib_progress = 0.0
         left_arm = 0
         right_arm = 0
+        left_wave = 0
+        right_wave = 0
 
         if detection_result.pose_landmarks:
             landmarks = detection_result.pose_landmarks[0]
@@ -185,6 +187,11 @@ def game_loop():
                     # C. ARM LOGIC (Shadow Man)
                     left_arm = calculate_arm_angle(landmarks[11], landmarks[15])
                     right_arm = calculate_arm_angle(landmarks[12], landmarks[16])
+
+                    # Wave (Elbow -> Wrist Vector)
+                    # Left: 13->15. Right: 14->16.
+                    left_wave = calculate_wiper_angle(landmarks[13], landmarks[15])
+                    right_wave = calculate_wiper_angle(landmarks[14], landmarks[16])
                 
                 prev_y = shoulder_y
 
@@ -196,6 +203,8 @@ def game_loop():
             'turn': turn_signal,     # <--- NEW: LEFT, RIGHT, or CENTER
             'l_arm': int(left_arm),
             'r_arm': int(right_arm),
+            'l_wave': int(left_wave),
+            'r_wave': int(right_wave),
             'calibration': round(calib_progress, 2)
         })
         
