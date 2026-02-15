@@ -91,9 +91,6 @@ function animate() {
     character.update();
     camController.update();
 
-    // UPDATE WORLD
-    levelManager.update(character.group.position.z);
-
     renderer.render(scene, camera);
 }
 animate();

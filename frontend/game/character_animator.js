@@ -6,18 +6,23 @@ export class CharacterAnimator {
         this.walkCycle = 0;
         this.speed = 0;
         this.maxSpeed = 0.15;
-        this.turnSpeed = 0.01; // Reduced sensitivity
+        this.turnSpeed = 0.035; // Tuned for responsive junction turns
         this.isBlocked = false; // Collision Flag
+
+        // MOVEMENT CONSTRAINTS
+        this.constraintAxis = 'Z'; // 'Z' (Main Path) or 'X' (Side Path)
+        this.constraintCenter = 0; // Ideal center line value
+    }
+
+    setConstraintMode(axis, centerVal) {
+        this.constraintAxis = axis;
+        this.constraintCenter = centerVal;
     }
 
     update(input) {
         if (this.isBlocked) {
             this.speed = 0;
             // Allow turning or idle animations, but NO forward movement
-            // Also need to stop processing forward input
-            // Return early for movement?
-            // We still want arm updates. 
-            // Just force speed 0 and skip position add.
         }
 
         // 1. SPEED & MOVEMENT
@@ -25,13 +30,33 @@ export class CharacterAnimator {
             const targetSpeed = input.momentum * this.maxSpeed;
             this.speed = THREE.MathUtils.lerp(this.speed, targetSpeed, 0.1);
 
-            // Move into screen (-Z)
+            // Move Forward (Local Z)
             const forward = new THREE.Vector3(0, 0, -1);
             forward.applyQuaternion(this.parts.group.quaternion);
             this.parts.group.position.addScaledVector(forward, this.speed);
 
-            // COLLISION: Clamp X
-            this.parts.group.position.x = Math.max(-2.9, Math.min(2.9, this.parts.group.position.x));
+            // AUTO-CENTERING & CLAMPING (Lane Assist)
+            const pos = this.parts.group.position;
+            const deviationMax = 2.9; // Max distance from center
+            const centeringStrength = 0.03; // Smooth pull factor (reduced from 0.08 to prevent jerky snap)
+
+            if (this.constraintAxis === 'Z') {
+                // Moving along Z. Constrain X.
+                // 1. Clamp
+                pos.x = Math.max(this.constraintCenter - deviationMax, Math.min(this.constraintCenter + deviationMax, pos.x));
+                // 2. Smooth Center
+                if (this.speed > 0.001) {
+                    pos.x = THREE.MathUtils.lerp(pos.x, this.constraintCenter, centeringStrength);
+                }
+            } else {
+                // Moving along X. Constrain Z.
+                // 1. Clamp
+                pos.z = Math.max(this.constraintCenter - deviationMax, Math.min(this.constraintCenter + deviationMax, pos.z));
+                // 2. Smooth Center
+                if (this.speed > 0.001) {
+                    pos.z = THREE.MathUtils.lerp(pos.z, this.constraintCenter, centeringStrength);
+                }
+            }
         }
 
         // 2. TURNING
@@ -42,7 +67,20 @@ export class CharacterAnimator {
             this.parts.group.rotation.y -= this.turnSpeed;
             this.parts.group.rotation.z = THREE.MathUtils.lerp(this.parts.group.rotation.z, -0.05, 0.05);
         } else {
-            this.parts.group.rotation.z = THREE.MathUtils.lerp(this.parts.group.rotation.z, 0, 0.05);
+            // AUTO-ALIGN (Magnetic Rotation)
+            // If no input, rely on constraint axis to straighten the character
+            this.parts.group.rotation.z = THREE.MathUtils.lerp(this.parts.group.rotation.z, 0, 0.1);
+
+            const currentRot = this.parts.group.rotation.y;
+
+            // Snap to nearest 90° (supports ALL 4 directions: N, S, E, W)
+            // This handles any combination of consecutive turns
+            const targetRot = Math.round(currentRot / (Math.PI / 2)) * (Math.PI / 2);
+
+            // Apply smooth correction
+            if (Math.abs(currentRot - targetRot) < 1.0) {
+                this.parts.group.rotation.y = THREE.MathUtils.lerp(currentRot, targetRot, 0.15);
+            }
         }
 
         // 3. WALK ANIMATION LOOP
