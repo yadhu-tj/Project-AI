@@ -1,5 +1,5 @@
 eventLet
 python-socketio
-opencv-python
+opencv-python-headless
 mediapipe
 numpy
