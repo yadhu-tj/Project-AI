@@ -1,0 +1,5 @@
+eventLet
+python-socketio
+opencv-python
+mediapipe
+numpy
