@@ -83,13 +83,55 @@ const gameManager = new GameManager(character, levelManager, input);
 // Camera
 const camController = new CameraController(camera, character);
 
-// Loop
+// ─── Junction Overlay ────────────────────────────────────────────────────────
+const junctionOverlay = document.getElementById("junction-overlay");
+let overlayVisible = false;
+let overlayShownOnce = false; // Show only once — first junction only
+
+function showJunctionOverlay() {
+    if (overlayVisible || overlayShownOnce) return; // One-shot guard
+    overlayVisible = true;
+    overlayShownOnce = true;
+    gameManager.overlayOpen = true;  // Suppress turns while popup is up
+    junctionOverlay.classList.remove("hidden");
+}
+
+function hideJunctionOverlay() {
+    if (!overlayVisible) return;
+    overlayVisible = false;
+    gameManager.overlayOpen = false;  // Re-enable turn detection
+    gameManager._lastTurn = "CENTER"; // Clear stale turn gesture
+    junctionOverlay.classList.add("hidden");
+}
+
+// Dev shortcut: press H to dismiss overlay
+window.addEventListener("keydown", (e) => {
+    if (e.key.toLowerCase() === "h") hideJunctionOverlay();
+});
+
+// ─── Game Loop ────────────────────────────────────────────────────────────────
 function animate() {
     requestAnimationFrame(animate);
 
-    gameManager.update(); // Update Logic (Collision)
+    gameManager.update();
     character.update();
-    camController.update();
+
+    // Show overlay when junction wall stops the world
+    if (levelManager.isBlocked && !overlayVisible) {
+        showJunctionOverlay();
+    }
+
+    // Dismiss overlay when either hand is raised (l_arm or r_arm > 60°)
+    if (overlayVisible && (input.l_arm > 60 || input.r_arm > 60)) {
+        hideJunctionOverlay();
+    }
+
+    // Snap camera instantly on a turn frame; smooth lerp all other frames
+    if (levelManager.justTurned) {
+        camController.snap();
+    } else {
+        camController.update();
+    }
 
     renderer.render(scene, camera);
 }
