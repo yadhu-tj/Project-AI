@@ -15,4 +15,15 @@ export class CameraController {
         this.camera.position.lerp(targetPos, 0.1);
         this.camera.lookAt(this.character.group.position);
     }
+
+    // Instantly snap camera behind the character — no lerp.
+    // Call this one frame after a turn so the new corridor appears straight ahead.
+    snap() {
+        const targetPos = this.offset.clone();
+        targetPos.applyQuaternion(this.character.group.quaternion);
+        targetPos.add(this.character.group.position);
+
+        this.camera.position.copy(targetPos);
+        this.camera.lookAt(this.character.group.position);
+    }
 }
