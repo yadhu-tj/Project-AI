@@ -4,6 +4,10 @@
 <head>
     <meta charset="UTF-8">
     <title>Character Control Test</title>
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link
+        href="https://fonts.googleapis.com/css2?family=Orbitron:wght@400;700;900&family=Rajdhani:wght@400;500;600&display=swap"
+        rel="stylesheet">
     <link rel="stylesheet" href="./assets/css/style.css">
 </head>
 
@@ -40,6 +44,42 @@
             <div>Steps: <span id="step-count" style="color: #fff">0</span></div>
             <div>Turn: <span id="turn-signal" style="color: #fff">CENTER</span></div>
         </div>
+    </div>
+
+    <!-- ═══ Junction Notification Overlay ═══ -->
+    <div id="junction-overlay" class="junction-overlay hidden">
+
+        <!-- Animated corner brackets -->
+        <span class="corner tl"></span>
+        <span class="corner tr"></span>
+        <span class="corner bl"></span>
+        <span class="corner br"></span>
+
+        <!-- Top label -->
+        <p class="junction-label">/ / &nbsp; P A T H &nbsp; A L E R T &nbsp; / /</p>
+
+        <!-- Main heading -->
+        <h2 class="junction-title">DEAD END</h2>
+
+        <!-- Neon divider -->
+        <div class="junction-divider"></div>
+
+        <!-- Body text -->
+        <p class="junction-body">
+            Take either <span class="highlight">LEFT</span> or <span class="highlight">RIGHT</span> from here.
+        </p>
+        <p class="junction-sub">
+            Both paths lead to a question.<br>
+            Only a correct answer will allow you to proceed.
+        </p>
+
+        <!-- Dismiss instruction -->
+        <div class="junction-dismiss">
+            <span class="hand-icon">✋</span>
+            Raise either hand to close this message
+            <span class="hand-icon">✋</span>
+        </div>
+
     </div>
 
     <script src="https://cdn.socket.io/4.7.2/socket.io.min.js"></script>
