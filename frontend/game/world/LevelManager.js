@@ -156,4 +156,34 @@ export class LevelManager {
             }
         }
     }
+
+    // Resets the entire maze to its initial state.
+    // Called by GameManager.loseLife() when the player still has lives remaining.
+    resetToStart() {
+        // 1. Clear the board — remove every chunk from the scene
+        for (const chunk of this.chunks) {
+            this.worldContainer.remove(chunk.mesh);
+        }
+        this.chunks = [];
+
+        // 2. Reset the world container transform
+        this.worldContainer.position.set(0, 0, 0);
+        this.worldContainer.rotation.set(0, 0, 0);
+
+        // 3. Reset all spawn & travel state
+        this.travelDistance = 0;
+        this.nextChunkLocalZ = 0;
+        this.chunksSpawned = 0;
+        this.isBlocked = false;
+        this.stopSpawning = false;
+        this.activeJunction = null;
+
+        // 4. Snap the camera back to default on the next frame
+        this.justTurned = true;
+
+        // 5. Respawn a fresh starting corridor
+        for (let i = 0; i < this.renderDistance; i++) {
+            this._spawnSequence();
+        }
+    }
 }
