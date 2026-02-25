@@ -233,11 +233,7 @@ function animate() {
     updateProgressHUD();
 
     // Camera
-    if (levelManager.justTurned) {
-        camController.snap();
-    } else {
-        camController.update();
-    }
+    camController.update();
 
     renderer.render(scene, camera);
 }
