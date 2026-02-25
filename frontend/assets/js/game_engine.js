@@ -89,24 +89,80 @@ let overlayVisible = false;
 let overlayShownOnce = false; // Show only once — first junction only
 
 function showJunctionOverlay() {
-    if (overlayVisible || overlayShownOnce) return; // One-shot guard
+    if (overlayVisible || overlayShownOnce) return;
     overlayVisible = true;
     overlayShownOnce = true;
-    gameManager.overlayOpen = true;  // Suppress turns while popup is up
     junctionOverlay.classList.remove("hidden");
 }
 
 function hideJunctionOverlay() {
     if (!overlayVisible) return;
     overlayVisible = false;
-    gameManager.overlayOpen = false;  // Re-enable turn detection
-    gameManager._lastTurn = "CENTER"; // Clear stale turn gesture
     junctionOverlay.classList.add("hidden");
 }
 
-// Dev shortcut: press H to dismiss overlay
+// ─── Game Over Overlay ────────────────────────────────────────────────────────
+const gameOverOverlay = document.getElementById("game-over-overlay");
+let gameOverVisible = false;
+
+function showGameOver() {
+    if (gameOverVisible) return;
+    gameOverVisible = true;
+    gameOverOverlay.classList.remove("hidden");
+}
+
+function hideGameOver() {
+    if (!gameOverVisible) return;
+    gameOverVisible = false;
+    gameOverOverlay.classList.add("hidden");
+}
+
+// ─── Lives HUD ────────────────────────────────────────────────────────────────
+const livesDisplay = document.getElementById("lives-display");
+
+function updateLivesHUD() {
+    const lives = Math.max(gameManager.lives, 0);
+    const hearts = ["♥ ♥ ♥", "♥ ♥ ♡", "♥ ♡ ♡", "♡ ♡ ♡"];
+    // Map 3→0 lives to heart strings. Clamp to 0.
+    const idx = Math.min(3 - lives, 3);
+    livesDisplay.textContent = hearts[idx];
+    livesDisplay.className = "lives-display" + (lives === 0 ? " lost" : "");
+}
+
+// ─── Restart ─────────────────────────────────────────────────────────────────
+function restart() {
+    gameManager.lives = 3;
+    gameManager.gameState = "RUNNING";
+    gameManager._lastTurn = "CENTER";
+    gameManager.junctionCount = 0;      // Reset so first-junction gesture is required again
+    gameManager.junctionDismissed = false;
+    character.group.rotation.set(0, 0, 0);
+    levelManager.resetToStart();
+    hideGameOver();
+}
+
+// ─── Dev / Input Shortcuts ────────────────────────────────────────────────────
 window.addEventListener("keydown", (e) => {
-    if (e.key.toLowerCase() === "h") hideJunctionOverlay();
+    const key = e.key.toLowerCase();
+
+    // H = keyboard arm raise: dismiss the junction overlay at the FIRST junction only.
+    // Junction 2+ are auto-dismissed; H has no effect there.
+    if (key === "h") {
+        if (
+            gameManager.gameState === "AT_JUNCTION" &&
+            gameManager.junctionCount === 0 &&
+            !gameManager.junctionDismissed
+        ) {
+            gameManager.junctionDismissed = true;
+        }
+        return;
+    }
+
+    // Q: context-sensitive — restart on DEAD, lose a life otherwise (dev test)
+    if (key === "q") {
+        if (gameManager.gameState === "DEAD") restart();
+        else gameManager.loseLife();
+    }
 });
 
 // ─── Game Loop ────────────────────────────────────────────────────────────────
@@ -116,17 +172,20 @@ function animate() {
     gameManager.update();
     character.update();
 
-    // Show overlay when junction wall stops the world
-    if (levelManager.isBlocked && !overlayVisible) {
+    if (gameManager.gameState === "AT_JUNCTION" && !gameManager.junctionDismissed) {
         showJunctionOverlay();
-    }
-
-    // Dismiss overlay when either hand is raised (l_arm or r_arm > 60°)
-    if (overlayVisible && (input.l_arm > 60 || input.r_arm > 60)) {
+    } else if (overlayVisible) {
         hideJunctionOverlay();
     }
 
-    // Snap camera instantly on a turn frame; smooth lerp all other frames
+    if (gameManager.gameState === "DEAD") {
+        showGameOver();
+    }
+
+    // Lives HUD — update every frame (cheap DOM write only when needed via textContent)
+    updateLivesHUD();
+
+    // Camera
     if (levelManager.justTurned) {
         camController.snap();
     } else {
