@@ -49,6 +49,17 @@
             <span class="stat-label">Lives</span>
             <span id="lives-display" class="lives-display">♥ ♥ ♥</span>
         </div>
+
+        <div class="stat-row" style="margin-top: 10px;">
+            <span class="stat-label">Level</span>
+            <span id="level-display" class="stat-value" style="color:#00ffff;">1 / 3</span>
+        </div>
+
+        <div class="stat-row" style="margin-top: 6px;">
+            <span class="stat-label">Time</span>
+            <span id="time-display" class="stat-value"
+                style="font-family:'Orbitron',monospace; font-size:0.8rem; color:#fbbf24;">00:00.00</span>
+        </div>
     </div>
 
     <!-- ═══ Junction Notification Overlay ═══ -->
@@ -87,6 +98,39 @@
 
     </div>
 
+    <!-- ═══ Victory Overlay ═══ -->
+    <div id="victory-overlay" class="junction-overlay hidden">
+
+        <span class="corner tl" style="border-color:#00ff88;"></span>
+        <span class="corner tr" style="border-color:#00ff88;"></span>
+        <span class="corner bl" style="border-color:#00ff88;"></span>
+        <span class="corner br" style="border-color:#00ff88;"></span>
+
+        <p class="junction-label" style="color:#00ff88;">/ / &nbsp; R U N &nbsp; C O M P L E T E &nbsp; / /</p>
+
+        <h2 class="junction-title victory-title">VICTORY</h2>
+
+        <div class="junction-divider"
+            style="background: linear-gradient(90deg, transparent, #00ff88, #00ff88, transparent); box-shadow: 0 0 10px #00ff88;">
+        </div>
+
+        <p class="junction-body" style="color:#ccc; font-size:1.1rem; letter-spacing:2px;">
+            All 3 levels cleared.
+        </p>
+
+        <p class="junction-body" style="margin-top:4px;">
+            Final Time:&nbsp;
+            <span id="final-time-display" class="highlight"
+                style="font-family:'Orbitron',monospace; color:#fbbf24; text-shadow: 0 0 12px rgba(251,191,36,0.8);">00:00.00</span>
+        </p>
+
+        <div class="junction-dismiss"
+            style="border-color: rgba(0,255,136,0.25); background: rgba(0,255,136,0.05); color: #666; margin-top:16px;">
+            Press &nbsp;<span style="color:#00ff88; font-weight:700; font-family:'Orbitron',monospace;">Q</span>&nbsp;
+            to speedrun again
+        </div>
+    </div>
+
     <!-- ═══ Game Over Overlay ═══ -->
     <div id="game-over-overlay" class="junction-overlay hidden">
 
@@ -113,6 +157,35 @@
             to restart
         </div>
     </div>
+    <!-- ═══ Quiz Overlay ═══ -->
+    <div id="quiz-overlay" class="junction-overlay hidden">
+
+        <span class="corner tl"></span>
+        <span class="corner tr"></span>
+        <span class="corner bl"></span>
+        <span class="corner br"></span>
+
+        <!-- Timer -->
+        <h2 id="quiz-timer" class="quiz-timer">30</h2>
+
+        <!-- Question -->
+        <p id="quiz-question" class="junction-body quiz-question-text"></p>
+
+        <!-- 50/50 answer panels -->
+        <div class="quiz-panels">
+            <div class="quiz-panel quiz-panel--a">
+                <div class="quiz-arm-hint">✋ Raise Left Arm</div>
+                <div id="quiz-opt-a" class="quiz-opt-text"></div>
+            </div>
+            <div class="quiz-panel-divider"></div>
+            <div class="quiz-panel quiz-panel--b">
+                <div class="quiz-arm-hint">✋ Raise Right Arm</div>
+                <div id="quiz-opt-b" class="quiz-opt-text"></div>
+            </div>
+        </div>
+
+    </div>
+
     <script src="https://cdn.socket.io/4.7.2/socket.io.min.js"></script>
     <script type="module" src="./assets/js/game_engine.js"></script>
 </body>
