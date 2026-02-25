@@ -303,3 +303,18 @@ h1 {
         opacity: 1.0;
     }
 }
+
+/* ── Lives Display ── */
+.lives-display {
+    font-size: 1.1rem;
+    letter-spacing: 4px;
+    color: #ff2244;
+    text-shadow: 0 0 8px rgba(255, 34, 68, 0.8);
+    font-family: 'Orbitron', monospace;
+    transition: all 0.3s ease;
+}
+
+.lives-display.lost {
+    color: #333;
+    text-shadow: none;
+}
