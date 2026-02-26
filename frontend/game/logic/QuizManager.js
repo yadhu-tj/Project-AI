@@ -92,9 +92,9 @@ export class QuizManager {
         const rightRaised = this.input.r_arm > CONFIG.ARM_RAISE_THRESHOLD;
 
         if (leftRaised) {
-            this._answer("A");
-        } else if (rightRaised) {
             this._answer("B");
+        } else if (rightRaised) {
+            this._answer("A");
         }
     }
 
@@ -108,12 +108,14 @@ export class QuizManager {
     }
 
     _success() {
+        if (!this.active) return;
         this._clear();
         console.log("✅ Quiz answered correctly — calling addScore().");
         this.gameManager.addScore();
     }
 
     _fail() {
+        if (!this.active) return;
         this._clear();
         console.log("❌ Quiz failed (wrong answer or timeout) — losing a life.");
         this.gameManager.loseLife();
