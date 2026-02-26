@@ -8,52 +8,40 @@ export class LevelManager {
         this.chunks = [];
         this.factory = new ChunkFactory();
 
-        // Config — driven by central CONFIG object
         this.chunkLength = CONFIG.CHUNK_LENGTH;
         this.renderDistance = CONFIG.RENDER_DISTANCE;
-        this.SEQUENCE_LEN = CONFIG.SEQUENCE_LEN;  // Straights before each T-junction
+        this.SEQUENCE_LEN = CONFIG.SEQUENCE_LEN;
 
-        // World container — scrolls/rotates while character stays fixed at origin
         this.worldContainer = new THREE.Group();
         scene.add(this.worldContainer);
 
-        // Spawn state
         this.nextChunkLocalZ = 0;
         this.chunksSpawned = 0;
         this.stopSpawning = false;
 
-        // Travel distance — direction-agnostic scalar that counts how far the
-        // world has scrolled since the last reset. Used for all distance checks
-        // so they remain correct after the container has been rotated.
         this.travelDistance = 0;
 
-        // Junction state
         this.isBlocked = false;
-        this.activeJunction = null; // { localZ, ... }
-        this.justTurned = false; // One-frame snap flag for camera
+        this.blockerType = null;
+        this.activeJunction = null;
+        this.activeDoor = null;
+        this.justTurned = false;
+        this.hasHadFirstJunction = false;
 
-        // Spawn initial corridor
         for (let i = 0; i < this.renderDistance; i++) {
             this._spawnSequence();
         }
     }
 
-    // Called every frame with the current movement speed
     update(speed) {
-        this.justTurned = false; // Clear snap flag after one frame
+        this.justTurned = false;
 
         if (this.isBlocked || speed <= 0) return;
 
-        // KEY FIX: translateZ moves along the container's OWN local Z axis.
-        // After a turn the container is rotated, so translateZ automatically
-        // scrolls in the new corridor direction instead of always world +Z.
         this.worldContainer.translateZ(speed);
         this.travelDistance += speed;
 
-        // Spawn new frontier chunks when close enough
         if (!this.stopSpawning) {
-            // nextChunkLocalZ is negative (e.g. -160). The chunk is within
-            // renderDistance when travelDistance has closed that gap.
             const distToFrontier = Math.abs(this.nextChunkLocalZ) - this.travelDistance;
             if (distToFrontier < this.renderDistance * this.chunkLength) {
                 this._spawnSequence();
@@ -61,58 +49,79 @@ export class LevelManager {
             }
         }
 
-        // Check if the junction's blocking wall has reached the character
         if (this.activeJunction) {
-            // Wall is at the FAR end of the junction chunk (localZ - chunkLength/2)
             const distToWall = Math.abs(this.activeJunction.localZ) + this.chunkLength / 2;
             if (this.travelDistance >= distToWall - 4.0) {
                 this.isBlocked = true;
+                this.blockerType = "JUNCTION";
+            }
+        }
+
+        if (this.activeDoor) {
+            const distToDoor = Math.abs(this.activeDoor.localZ);
+            if (this.travelDistance >= distToDoor - 4.0) {
+                this.isBlocked = true;
+                this.blockerType = "DOOR";
             }
         }
     }
 
-    // Called by GameManager when player turns at the junction
     handleTurn(direction, characterGroup) {
         const angle = (direction === "LEFT") ? Math.PI / 2 : -Math.PI / 2;
 
-        // 1. Rotate world container — new local -Z points along the new corridor direction
         this.worldContainer.rotation.y += angle;
 
-        // 2. Rotate character to face the new direction (camera follows)
         if (characterGroup) {
             characterGroup.rotation.y += angle;
         }
 
-        // 3. Clear all existing chunks
         for (const chunk of this.chunks) {
             this.worldContainer.remove(chunk.mesh);
         }
         this.chunks = [];
 
-        // 4. Reset container position — new corridor starts right at the character
         this.worldContainer.position.set(0, 0, 0);
 
-        // 5. Reset ALL spawn & travel state
         this.nextChunkLocalZ = 0;
         this.chunksSpawned = 0;
         this.stopSpawning = false;
         this.activeJunction = null;
+        this.activeDoor = null;
         this.isBlocked = false;
-        this.travelDistance = 0;   // ← Reset so distance checks are fresh
-        this.justTurned = true; // Signal camera to snap this frame
+        this.blockerType = null;
+        this.travelDistance = 0;
+        this.justTurned = true;
+        this.hasHadFirstJunction = true;
 
-        // 6. Spawn fresh corridor in the new direction
         for (let i = 0; i < this.renderDistance; i++) {
             this._spawnSequence();
         }
     }
 
-    // ─── PRIVATE ───────────────────────────────────────────────────────────────
+    openActiveDoor() {
+        if (!this.activeDoor) return true;
+
+        const leftDoor = this.activeDoor.mesh.leftDoor;
+        const rightDoor = this.activeDoor.mesh.rightDoor;
+
+        leftDoor.position.x -= 0.15;
+        rightDoor.position.x += 0.15;
+
+        if (leftDoor.position.x < -this.factory.chunkWidth) {
+            this.isBlocked = false;
+            this.blockerType = null;
+            this.activeDoor = null;
+            return true;
+        }
+        return false;
+    }
 
     _spawnSequence() {
         if (this.stopSpawning) return;
 
-        if (this.chunksSpawned > 0 && this.chunksSpawned % this.SEQUENCE_LEN === 0) {
+        if (this.chunksSpawned === 2 && this.hasHadFirstJunction) {
+            this._spawnDoorChunk();
+        } else if (this.chunksSpawned > 0 && this.chunksSpawned % this.SEQUENCE_LEN === 0) {
             this._spawnJunctionChunk();
             this.stopSpawning = true;
         } else {
@@ -142,10 +151,19 @@ export class LevelManager {
         this.nextChunkLocalZ -= this.chunkLength;
     }
 
+    _spawnDoorChunk() {
+        const chunk = this.factory.createDoorChunk();
+        chunk.position.z = this.nextChunkLocalZ;
+        this.worldContainer.add(chunk);
+
+        const data = { mesh: chunk, localZ: this.nextChunkLocalZ, type: "DOOR" };
+        this.chunks.push(data);
+        this.activeDoor = data;
+
+        this.nextChunkLocalZ -= this.chunkLength;
+    }
+
     _removeOldChunks() {
-        // A chunk is "old" when the world has scrolled far enough past it.
-        // localZ is negative, so the chunk was at distance |localZ| from origin.
-        // It's behind the character once travelDistance > |localZ| + buffer.
         const REMOVE_BUFFER = this.chunkLength * 2;
 
         if (this.chunks.length > 0) {
@@ -158,31 +176,27 @@ export class LevelManager {
         }
     }
 
-    // Resets the entire maze to its initial state.
-    // Called by GameManager.loseLife() when the player still has lives remaining.
     resetToStart() {
-        // 1. Clear the board — remove every chunk from the scene
         for (const chunk of this.chunks) {
             this.worldContainer.remove(chunk.mesh);
         }
         this.chunks = [];
 
-        // 2. Reset the world container transform
         this.worldContainer.position.set(0, 0, 0);
         this.worldContainer.rotation.set(0, 0, 0);
 
-        // 3. Reset all spawn & travel state
         this.travelDistance = 0;
         this.nextChunkLocalZ = 0;
         this.chunksSpawned = 0;
         this.isBlocked = false;
+        this.blockerType = null;
         this.stopSpawning = false;
         this.activeJunction = null;
+        this.activeDoor = null;
+        this.hasHadFirstJunction = false;
 
-        // 4. Snap the camera back to default on the next frame
         this.justTurned = true;
 
-        // 5. Respawn a fresh starting corridor
         for (let i = 0; i < this.renderDistance; i++) {
             this._spawnSequence();
         }

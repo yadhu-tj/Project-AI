@@ -171,4 +171,115 @@ export class ChunkFactory {
         sign.position.set(0, 5, -this.chunkLength / 2 + 0.6);
         parent.add(sign);
     }
+
+    _makeDoorTexture(side) {
+        const W = 256, H = 512;
+        const canvas = document.createElement("canvas");
+        canvas.width = W; canvas.height = H;
+        const ctx = canvas.getContext("2d");
+
+        ctx.fillStyle = "#12122a";
+        ctx.fillRect(0, 0, W, H);
+
+        const stripeW = 40;
+        ctx.save();
+        ctx.translate(side === "left" ? W : 0, 0);
+        ctx.scale(side === "left" ? -1 : 1, 1);
+        for (let i = -H; i < W + H; i += stripeW * 2) {
+            ctx.beginPath();
+            ctx.moveTo(i, 0); ctx.lineTo(i + stripeW, 0);
+            ctx.lineTo(i + stripeW - H, H); ctx.lineTo(i - H, H);
+            ctx.closePath();
+            ctx.fillStyle = "rgba(255,180,0,0.13)";
+            ctx.fill();
+        }
+        ctx.restore();
+
+        ctx.strokeStyle = "#ff00dc";
+        ctx.lineWidth = 3;
+        ctx.strokeRect(6, 6, W - 12, H - 12);
+
+        ctx.globalAlpha = 0.18;
+        ctx.strokeStyle = "#ff00dc";
+        ctx.lineWidth = 1;
+        for (let y = 40; y < H; y += 40) {
+            ctx.beginPath(); ctx.moveTo(0, y); ctx.lineTo(W, y); ctx.stroke();
+        }
+        ctx.globalAlpha = 1;
+
+        ctx.fillStyle = "#1e0030";
+        ctx.fillRect(W / 2 - 28, H / 2 - 20, 56, 40);
+        ctx.strokeStyle = "#ff00dc";
+        ctx.lineWidth = 2;
+        ctx.strokeRect(W / 2 - 28, H / 2 - 20, 56, 40);
+        ctx.fillStyle = "#ff00dc";
+        ctx.font = "bold 13px monospace";
+        ctx.textAlign = "center";
+        ctx.textBaseline = "middle";
+        ctx.fillText("LOCKED", W / 2, H / 2);
+
+        return new THREE.CanvasTexture(canvas);
+    }
+
+    createDoorChunk() {
+        const chunk = this.createStandardChunk();
+
+        const doorW = this.chunkWidth / 2;
+        const doorH = this.wallHeight;
+        const doorD = 0.9;
+
+        const leftTex = this._makeDoorTexture("left");
+        const rightTex = this._makeDoorTexture("right");
+
+        const neonMat = new THREE.MeshBasicMaterial({ color: 0xff00dc });
+        const warnMat = new THREE.MeshBasicMaterial({ color: 0xff6600 });
+
+        const mkDoorMat = (tex) => [
+            new THREE.MeshBasicMaterial({ color: 0x0a0a1a }),
+            new THREE.MeshBasicMaterial({ color: 0x0a0a1a }),
+            new THREE.MeshBasicMaterial({ color: 0x0a0a1a }),
+            new THREE.MeshBasicMaterial({ color: 0x0a0a1a }),
+            new THREE.MeshStandardMaterial({ map: tex, roughness: 0.3, metalness: 0.8 }),
+            new THREE.MeshStandardMaterial({ map: tex, roughness: 0.3, metalness: 0.8 }),
+        ];
+
+        const leftDoor = new THREE.Mesh(new THREE.BoxGeometry(doorW, doorH, doorD), mkDoorMat(leftTex));
+        leftDoor.position.set(-doorW / 2, doorH / 2, 0);
+        chunk.add(leftDoor);
+
+        const rightDoor = new THREE.Mesh(new THREE.BoxGeometry(doorW, doorH, doorD), mkDoorMat(rightTex));
+        rightDoor.position.set(doorW / 2, doorH / 2, 0);
+        chunk.add(rightDoor);
+
+        const seam = new THREE.Mesh(new THREE.BoxGeometry(0.15, doorH, doorD + 0.05), neonMat);
+        seam.position.set(doorW / 2, 0, 0);
+        leftDoor.add(seam);
+
+        const hBar = new THREE.Mesh(new THREE.BoxGeometry(doorW, 0.35, doorD + 0.05), neonMat);
+        hBar.position.set(0, doorH * 0.3, 0);
+        leftDoor.add(hBar.clone());
+        hBar.position.x = 0;
+        rightDoor.add(hBar);
+
+        const lightGeo = new THREE.SphereGeometry(0.22, 8, 8);
+        const corners = [
+            [doorW / 2 - 0.4, doorH / 2 - 0.6, doorD / 2 + 0.1],
+            [doorW / 2 - 0.4, -doorH / 2 + 0.6, doorD / 2 + 0.1],
+            [-doorW / 2 + 0.4, doorH / 2 - 0.6, doorD / 2 + 0.1],
+            [-doorW / 2 + 0.4, -doorH / 2 + 0.6, doorD / 2 + 0.1],
+        ];
+        for (const [x, y, z] of corners) {
+            const l = new THREE.Mesh(lightGeo, warnMat);
+            l.position.set(x, y, z);
+            leftDoor.add(l);
+            const r = l.clone();
+            r.position.x = -x;
+            rightDoor.add(r);
+        }
+
+        chunk.leftDoor = leftDoor;
+        chunk.rightDoor = rightDoor;
+
+        return chunk;
+    }
 }
