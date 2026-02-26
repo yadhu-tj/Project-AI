@@ -1,32 +1,26 @@
 import { CONFIG } from "../../game/config.js";
 export class GameManager {
-    constructor(character, levelManager, input) {
+    constructor(character, levelManager, input, onFlash = null) {
         this.character = character;
         this.levelManager = levelManager;
         this.input = input;
+        this.onFlash = onFlash;
 
         this._lastTurn = "CENTER";
 
         this.gameState = "RUNNING";
         this.junctionDismissed = false;
 
-        // Tracks how many junctions have been reached.
-        // The FIRST junction (junctionCount === 0) requires a hand-raise gesture
-        // or the H key to dismiss the dialogue overlay before turning.
-        // All subsequent junctions (junctionCount >= 1) are auto-dismissed —
-        // no gesture or keybinding is needed; just turn.
         this.junctionCount = 0;
 
         this.lives = 3;
         this.score = 0;
 
-        // ── Phase 4: Speedrun / Level tracking ───────────────────────────────
-        // score 0-2  → level 1 │ score 3-5 → level 2 │ score 6-8 → level 3
-        // score >= 9 → GAME_WON
         this.level = 1;
         this.startTime = Date.now();
         this.endTime = null;
         this.globalTime = "00:00.00";
+        this.timerActive = false;
     }
 
     // ── Converts elapsed ms into "MM:SS.cs" (centiseconds) ───────────────────
@@ -44,23 +38,42 @@ export class GameManager {
 
     // ── Called by QuizManager on a correct answer ─────────────────────────────
     addScore() {
+        const prevLevel = this.level;
         this.score++;
         this.level = Math.floor(this.score / 3) + 1;
 
-        if (this.score >= 2) {
+        if (this.score >= 6) {
             this.endTime = Date.now();
             this.gameState = "GAME_WON";
             console.log("🏆 Game Won! Final time:", this.formatTime(this.endTime - this.startTime));
         } else {
-            this.gameState = "RUNNING";
+            this.gameState = "DOOR_OPENING";
+            if (this.level > prevLevel) {
+                if (this.onFlash) this.onFlash("cyan", "LEVEL " + this.level + " SECURED");
+            } else {
+                if (this.onFlash) this.onFlash("cyan", "SYSTEM OVERRIDE SUCCESSFUL");
+            }
             console.log(`✅ Score: ${this.score} | Level: ${this.level}`);
         }
     }
 
     update() {
-        // ── Global timer — ticks in every non-terminal state ─────────────────
+        if (!this.timerActive) return;
+
+        const now = Date.now();
+        const frameDelta = now - (this._prevFrameTime || now);
+        this._prevFrameTime = now;
+
+        const overlayPaused = this.gameState === "AT_JUNCTION"
+            && this.junctionCount === 0
+            && !this.junctionDismissed;
+
+        if (overlayPaused) {
+            this.startTime += frameDelta;
+        }
+
         if (this.gameState !== "DEAD" && this.gameState !== "GAME_WON") {
-            this.globalTime = this.formatTime(Date.now() - this.startTime);
+            this.globalTime = this.formatTime(now - this.startTime);
         }
 
         const speed = this.character.animator.speed;
@@ -71,7 +84,8 @@ export class GameManager {
             case "RUNNING": {
                 this.levelManager.update(speed);
                 if (this.levelManager.isBlocked) {
-                    this.gameState = "AT_JUNCTION";
+                    if (this.levelManager.blockerType === "JUNCTION") this.gameState = "AT_JUNCTION";
+                    else if (this.levelManager.blockerType === "DOOR") this.gameState = "AT_DOOR";
                 }
                 break;
             }
@@ -92,9 +106,9 @@ export class GameManager {
                     if (turn !== "CENTER" && turn !== this._lastTurn) {
                         this.levelManager.handleTurn(turn, this.character.group);
                         this.junctionDismissed = false;
-                        this.junctionCount++;           // Increment after each successful turn
-                        this._lastTurn = "CENTER";      // Reset so same direction works next junction
-                        this.gameState = "AT_DOOR";     // Trigger quiz before resuming
+                        this.junctionCount++;
+                        this._lastTurn = "CENTER";
+                        this.gameState = "RUNNING";
                     }
                 }
                 this._lastTurn = turn;
@@ -102,6 +116,13 @@ export class GameManager {
             }
 
             case "AT_DOOR": {
+                break;
+            }
+
+            case "DOOR_OPENING": {
+                if (this.levelManager.openActiveDoor()) {
+                    this.gameState = "RUNNING";
+                }
                 break;
             }
 
@@ -123,14 +144,14 @@ export class GameManager {
             this.gameState = "DEAD";
             console.log("💀 Game Over — no lives remaining.");
         } else {
-            // Reset progress — the run restarts from scratch
-            this.score = 0;
-            this.level = 1;
+            //this.score = 0;
+            //this.level = 1;
             //this.startTime = Date.now();
             this.endTime = null;
             this.character.group.rotation.set(0, 0, 0);
             this.levelManager.resetToStart();
             this.gameState = "RUNNING";
+            if (this.onFlash) this.onFlash("red", "INCORRECT - YOU LOSE A LIFE");
         }
     }
 }
