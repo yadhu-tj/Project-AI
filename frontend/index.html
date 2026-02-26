@@ -13,6 +13,32 @@
 
 <body>
 
+    <div id="flash-overlay" class="flash-overlay hidden">
+        <h2 id="flash-text" class="flash-text"></h2>
+    </div>
+
+    <div id="calib-overlay">
+        <span class="corner tl" style="border-color:#00ffff;"></span>
+        <span class="corner tr" style="border-color:#00ffff;"></span>
+        <span class="corner bl" style="border-color:#00ffff;"></span>
+        <span class="corner br" style="border-color:#00ffff;"></span>
+
+        <p class="calib-game-title">MOTION LINK v1.0</p>
+        <h2 class="calib-heading" id="calib-heading">CALIBRATING</h2>
+
+        <div id="calib-phase-section">
+            <p class="calib-hint">Stand still &middot; Face the camera &middot; Arms at sides</p>
+            <div class="calib-bar-wrap">
+                <div id="calib-prog-fill"></div>
+            </div>
+            <p class="calib-pct" id="calib-pct">0%</p>
+        </div>
+
+        <div id="calib-countdown-section" class="hidden">
+            <div id="calib-number" class="calib-number">3</div>
+        </div>
+    </div>
+
     <div id="info">
         <h1>Motion Link v1.0</h1>
 
@@ -30,14 +56,6 @@
         </div>
         <div class="progress-container">
             <div id="momentum-bar" class="progress-bar"></div>
-        </div>
-
-        <div class="stat-row" style="margin-top: 15px;">
-            <span class="stat-label">Calibration</span>
-            <span class="stat-value" id="calib-val">0%</span>
-        </div>
-        <div class="progress-container">
-            <div id="calib-bar" class="progress-bar" style="width: 0%"></div>
         </div>
 
         <div class="stat-row" style="margin-top: 20px; font-size: 0.8rem; color: #666;">
