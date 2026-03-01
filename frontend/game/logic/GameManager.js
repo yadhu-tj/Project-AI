@@ -40,7 +40,7 @@ export class GameManager {
     addScore() {
         const prevLevel = this.level;
         this.score++;
-        this.level = Math.floor(this.score / 3) + 1;
+        this.level = Math.floor(this.score / 2) + 1; // 2 questions = 1 level
 
         if (this.score >= 6) {
             this.endTime = Date.now();

@@ -52,8 +52,8 @@ export class InputAdapter {
             if (key === "q") this.l_wave = 1;
             if (key === "e") this.r_wave = 1;
             // Z/X = dev arm-raise simulation (used to answer quiz: Z→Option A, X→Option B)
-            if (key === "z") this.l_arm = 75;
-            if (key === "x") this.r_arm = 75;
+            if (key === "x") this.l_arm = 75;
+            if (key === "z") this.r_arm = 75;
 
             if (onTelemetry) onTelemetry(this);
         });
