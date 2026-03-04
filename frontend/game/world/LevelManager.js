@@ -28,6 +28,15 @@ export class LevelManager {
         this.justTurned = false;
         this.hasHadFirstJunction = false;
 
+        this.waitForTutorial = true; // Wait until tutorial finishes before spawning
+
+        if (!this.waitForTutorial) {
+            this.startProceduralGeneration();
+        }
+    }
+
+    startProceduralGeneration() {
+        this.waitForTutorial = false;
         for (let i = 0; i < this.renderDistance; i++) {
             this._spawnSequence();
         }

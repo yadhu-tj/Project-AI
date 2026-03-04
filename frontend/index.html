@@ -47,7 +47,31 @@
         <h2 id="flash-text" class="flash-text"></h2>
     </div>
 
-    <div id="calib-overlay">
+    <!-- ═══ INTERACTIVE NAME INPUT & INTRO OVERLAY ═══ -->
+    <div id="name-input-overlay">
+        <!-- Radar Background Layer -->
+        <div class="intro-radar-bg"></div>
+
+        <span class="corner tl" style="border-color:#00ffff;"></span>
+        <span class="corner tr" style="border-color:#00ffff;"></span>
+        <span class="corner bl" style="border-color:#00ffff;"></span>
+        <span class="corner br" style="border-color:#00ffff;"></span>
+
+        <div id="intro-content-container" class="intro-content-container">
+            <!-- 1. Boot-up Console Sequence -->
+            <div id="boot-console" class="boot-console">
+                <div class="boot-line">> MOTION LINK v.1.0_</div>
+                <div class="boot-line" style="opacity:0">> Neural Link Established...</div>
+                <div class="boot-line" style="opacity:0">> Accessing Kinetic Drive...</div>
+                <div class="boot-line" style="opacity:0">> Awaiting Pilot Identity...</div>
+            </div>
+
+
+        </div>
+    </div>
+
+    <!-- ═══ CALIBRATION OVERLAY (Now hidden initially) ═══ -->
+    <div id="calib-overlay" class="hidden">
         <span class="corner tl" style="border-color:#00ffff;"></span>
         <span class="corner tr" style="border-color:#00ffff;"></span>
         <span class="corner bl" style="border-color:#00ffff;"></span>
@@ -74,10 +98,12 @@
     <div id="turn-right" class="turn-indicator turn-indicator-right"></div>
 
     <!-- ═══ HUD OVERLAYS ═══ -->
-    <div id="hud-container">
+    <div id="hud-container" class="hidden">
         <!-- Center top: Timer -->
         <div id="time-display" class="hud-timer">00:00.00</div>
 
+        <!-- Turn Notification Popup -->
+        <div id="turn-notification" class="turn-notification"></div>
         <!-- Top-Left: Status & Energy Core -->
         <div class="hud-panel panel-tl">
             <div class="status-wrap">
@@ -266,6 +292,12 @@
             </div>
         </div>
 
+    </div>
+
+    <!-- ═══ TUTORIAL OVERLAY ═══ -->
+    <div id="tutorial-overlay" class="hidden">
+        <p id="tutorial-text" class="tutorial-text"></p>
+        <p id="tutorial-subtext" class="tutorial-subtext"></p>
     </div>
 
     <script src="https://cdn.socket.io/4.7.2/socket.io.min.js"></script>

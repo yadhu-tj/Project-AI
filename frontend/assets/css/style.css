@@ -31,14 +31,48 @@ body {
 }
 
 /* ═══════════════════════════════════════════
+   TURN NOTIFICATION POPUP
+═══════════════════════════════════════════ */
+.turn-notification {
+    position: absolute;
+    top: 12vh;
+    left: 50%;
+    transform: translateX(-50%) translateY(-20px);
+    font-family: 'Orbitron', monospace;
+    font-size: clamp(1rem, 2.5vw, 1.6rem);
+    font-weight: 700;
+    letter-spacing: 6px;
+    color: #00ffff;
+    text-shadow: 0 0 18px rgba(0, 255, 255, 0.9), 0 0 40px rgba(0, 255, 255, 0.4);
+    background: rgba(0, 255, 255, 0.07);
+    border: 1px solid rgba(0, 255, 255, 0.25);
+    border-radius: 6px;
+    padding: 10px 28px;
+    opacity: 0;
+    pointer-events: none;
+    transition: opacity 0.15s ease, transform 0.15s ease;
+    white-space: nowrap;
+}
+
+.turn-notification.visible {
+    opacity: 1;
+    transform: translateX(-50%) translateY(0);
+}
+
+/* ═══════════════════════════════════════════
    HUD LAYOUT (SCI-FI VISOR)
 ═══════════════════════════════════════════ */
 #hud-container {
     position: fixed;
     inset: 0;
     pointer-events: none;
-    /* Let clicks pass through */
     z-index: 200;
+    opacity: 1;
+    transition: opacity 0.5s ease;
+}
+
+#hud-container.hidden {
+    opacity: 0;
 }
 
 /* ── Center Top Timer ── */
@@ -645,6 +679,11 @@ body {
     opacity: 1;
 }
 
+#calib-overlay.hidden {
+    opacity: 0;
+    pointer-events: none;
+}
+
 #calib-overlay.calib-fade-out {
     opacity: 0;
 }
@@ -1011,7 +1050,122 @@ body {
     }
 
     50% {
-        opacity: 0.3;
+        opacity: 0.4;
+    }
+}
+
+/* ── Keyboard focus accessibility ──────────────────────────────────────────── */
+.perso-input:focus-visible {
+    border-bottom-color: #00ffff;
+    background: rgba(0, 255, 255, 0.06);
+    outline: 2px solid rgba(0, 255, 255, 0.7);
+    outline-offset: 2px;
+    box-shadow: 0 2px 12px rgba(0, 255, 255, 0.2), 0 0 0 4px rgba(0, 255, 255, 0.08);
+}
+
+.perso-btn:focus-visible {
+    outline: 2px solid rgba(0, 255, 255, 0.9);
+    outline-offset: 3px;
+    box-shadow: 0 0 35px rgba(0, 255, 255, 0.4), 0 0 0 5px rgba(0, 255, 255, 0.08);
+}
+
+/* ═══════════════════════════════════════════
+   INTERACTIVE INTRO & NAME INPUT OVERLAY
+═══════════════════════════════════════════ */
+#name-input-overlay {
+    position: fixed;
+    inset: 0;
+    z-index: 3000;
+    background: radial-gradient(circle at center, rgba(10, 20, 30, 0.95), rgba(0, 5, 10, 1.0));
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    transition: opacity 0.6s ease;
+    opacity: 1;
+    perspective: 1000px;
+}
+
+#name-input-overlay.hidden {
+    opacity: 0;
+    pointer-events: none;
+}
+
+/* ── Radar Background ── */
+.intro-radar-bg {
+    position: absolute;
+    inset: -50%;
+    z-index: -1;
+    background: conic-gradient(from 0deg, transparent 70%, rgba(0, 255, 255, 0.15) 100%);
+    border-radius: 50%;
+    animation: radarSpin 4s linear infinite;
+    pointer-events: none;
+}
+
+.intro-radar-bg::after {
+    content: '';
+    position: absolute;
+    inset: 0;
+    border-radius: 50%;
+    background-image:
+        linear-gradient(rgba(0, 255, 255, 0.05) 1px, transparent 1px),
+        linear-gradient(90deg, rgba(0, 255, 255, 0.05) 1px, transparent 1px);
+    background-size: 40px 40px;
+    background-position: center center;
+}
+
+@keyframes radarSpin {
+    100% {
+        transform: rotate(360deg);
+    }
+}
+
+/* ── Container for Parallax ── */
+.intro-content-container {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 30px;
+    transition: transform 0.1s ease-out;
+    /* JavaScript will drive the tilt */
+    transform-style: preserve-3d;
+}
+
+/* ── Boot Sequence Console ── */
+.boot-console {
+    font-family: 'Orbitron', monospace;
+    color: #00ff88;
+    font-size: 1rem;
+    letter-spacing: 2px;
+    text-shadow: 0 0 8px rgba(0, 255, 136, 0.6);
+    margin-bottom: 20px;
+    height: 100px;
+    display: flex;
+    flex-direction: column;
+    justify-content: flex-end;
+    align-items: flex-start;
+    width: 400px;
+}
+
+.boot-line {
+    margin: 4px 0;
+    transition: opacity 0.2s ease;
+}
+
+.boot-line::after {
+    content: '_';
+    animation: blinkCaret 1s step-end infinite;
+}
+
+@keyframes blinkCaret {
+
+    0%,
+    100% {
+        opacity: 1;
+    }
+
+    50% {
+        opacity: 0;
     }
 }
 
@@ -1035,4 +1189,52 @@ body {
     box-shadow:
         0 0 35px rgba(0, 255, 255, 0.4),
         0 0 0 5px rgba(0, 255, 255, 0.08);
+}
+
+
+
+/* ═══════════════════════════════════════════
+   TUTORIAL PROMPT OVERLAY
+═══════════════════════════════════════════ */
+#tutorial-overlay {
+    position: fixed;
+    bottom: 25vh;
+    left: 50%;
+    transform: translateX(-50%);
+    z-index: 1000;
+    background: rgba(0, 0, 0, 0.7);
+    backdrop-filter: blur(8px);
+    -webkit-backdrop-filter: blur(8px);
+    border: 1px solid rgba(0, 255, 255, 0.4);
+    border-radius: 12px;
+    padding: 20px 40px;
+    text-align: center;
+    box-shadow: 0 0 30px rgba(0, 255, 255, 0.15);
+    transition: opacity 0.4s ease, transform 0.4s ease;
+    opacity: 1;
+    pointer-events: none;
+    max-width: 80vw;
+}
+
+#tutorial-overlay.hidden {
+    opacity: 0;
+    transform: translateX(-50%) translateY(20px);
+}
+
+.tutorial-text {
+    font-family: 'Orbitron', monospace;
+    font-size: clamp(1.2rem, 3vw, 1.8rem);
+    color: #00ffff;
+    letter-spacing: 3px;
+    margin: 0;
+    text-shadow: 0 0 15px rgba(0, 255, 255, 0.8);
+    text-transform: uppercase;
+}
+
+.tutorial-subtext {
+    font-family: 'Rajdhani', sans-serif;
+    font-size: 1.1rem;
+    color: #aaa;
+    letter-spacing: 2px;
+    margin: 8px 0 0 0;
 }

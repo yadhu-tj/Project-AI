@@ -7,6 +7,15 @@ import { GameManager } from "../../game/logic/GameManager.js";
 import { QuizManager } from "../../game/logic/QuizManager.js";
 import { PersonalizationManager } from "../../game/PersonalizationManager.js";
 import { CONFIG } from "../../game/config.js";
+import { HolographicGuide } from "../../game/HolographicGuide.js";
+
+// State Flags for Init Flow
+let playerName = "Pilot";
+let nameSubmitted = true;
+let isCalibrated = false;
+let hasCompletedTutorial = false;
+let holographicGuide = null;
+let tutorialStarted = false;
 
 // Scene
 const scene = new THREE.Scene();
@@ -42,6 +51,8 @@ const levelManager = new LevelManager(scene);
 
 // UI Elements
 const uiIds = {
+    nameOverlay: document.getElementById("name-input-overlay"),
+
     status: document.getElementById("status"),
     indicator: document.getElementById("status-indicator"),
     momentumVal: document.getElementById("momentum-val"),
@@ -49,6 +60,12 @@ const uiIds = {
     score: document.getElementById("score-display"),
     turnLeft: document.getElementById("turn-left"),
     turnRight: document.getElementById("turn-right"),
+
+    // Intro Specifics
+    introContentContainer: document.getElementById("intro-content-container"),
+    bootLines: document.querySelectorAll(".boot-line"),
+    hudContainer: document.getElementById("hud-container"),
+    turnNotification: document.getElementById("turn-notification"),
 };
 
 const calibOverlay = document.getElementById("calib-overlay");
@@ -85,6 +102,7 @@ function _startCountdown() {
             calibNumberEl.style.textShadow = "0 0 40px rgba(0,255,136,0.9)";
             setTimeout(() => {
                 calibOverlay.classList.add("calib-fade-out");
+                uiIds.hudContainer.classList.remove("hidden"); // Reveal HUD here
                 setTimeout(() => calibOverlay.classList.add("hidden"), 400);
                 gameManager.startTime = Date.now();
                 gameManager.timerActive = true;
@@ -96,6 +114,100 @@ function _startCountdown() {
     }
     tick();
 }
+
+function startTutorial() {
+    tutorialStarted = true;
+    calibOverlay.classList.add("hidden");
+
+    // Instantiate Hologram Guide
+    holographicGuide = new HolographicGuide(scene, playerName, () => {
+        // Tutorial Complete Callback:
+        hasCompletedTutorial = true;
+        holographicGuide = null;
+        levelManager.startProceduralGeneration();
+
+        // Show "PILOT VERIFIED" Screen ready
+        calibOverlay.classList.remove("hidden");
+        calibPhaseEl.classList.remove("hidden");
+        calibCountSec.classList.add("hidden");
+
+        calibHeading.textContent = "PILOT VERIFIED";
+        calibHeading.style.color = "#00ff88";
+        calibHeading.style.textShadow = "0 0 40px rgba(0,255,136,0.9)";
+
+        const hintEl = document.querySelector("#calib-phase-section .calib-hint");
+        hintEl.textContent = "SYNCING NEURAL PATHWAYS...";
+
+        // User requested removing the progress bar from this screen
+        calibProgFill.parentElement.style.display = "none";
+        calibPctEl.style.display = "none";
+
+        setTimeout(() => {
+            // Reset styles and start countdown
+            calibHeading.style.color = "#00ffff";
+            calibHeading.style.textShadow = "0 0 20px rgba(0, 255, 255, 0.8), 0 0 60px rgba(0, 255, 255, 0.3)";
+            hintEl.textContent = "Stand still \u00B7 Face the camera \u00B7 Arms at sides"; // Reset just in case
+            _startCountdown();
+        }, 1500);
+    });
+}
+
+// --- INTRO BOOT SEQUENCE & PARALLAX ---
+// Add parallax tilt on mousemove
+uiIds.nameOverlay.addEventListener("mousemove", (e) => {
+    const rect = uiIds.nameOverlay.getBoundingClientRect();
+    const x = e.clientX - rect.left - rect.width / 2;
+    const y = e.clientY - rect.top - rect.height / 2;
+
+    const tiltX = -(y / rect.height) * 20; // max 10 deg tilt
+    const tiltY = (x / rect.width) * 20;
+
+    uiIds.introContentContainer.style.transform = `rotateX(${tiltX}deg) rotateY(${tiltY}deg)`;
+});
+
+uiIds.nameOverlay.addEventListener("mouseleave", () => {
+    uiIds.introContentContainer.style.transform = `rotateX(0deg) rotateY(0deg)`;
+});
+
+function runBootSequence() {
+    const lines = uiIds.bootLines;
+    let delay = 600;
+
+    // 1. Reveal boot lines progressively
+    lines.forEach((line, index) => {
+        if (index === 0) return; // First line already visible
+        setTimeout(() => {
+            line.style.opacity = "1";
+        }, delay);
+        delay += 800;
+    });
+
+    // 2. Hide console, then auto-proceed to calibration
+    setTimeout(() => {
+        lines.forEach(line => line.style.opacity = "0");
+        setTimeout(() => {
+            document.getElementById("boot-console").style.display = "none";
+            // Auto-proceed: fade out overlay and show calibration
+            uiIds.nameOverlay.style.opacity = "0";
+            uiIds.nameOverlay.style.pointerEvents = "none";
+            setTimeout(() => uiIds.nameOverlay.classList.add("hidden"), 600);
+
+            if (isCalibrated) {
+                startTutorial();
+            } else {
+                calibOverlay.classList.remove("hidden");
+                calibPhaseEl.classList.remove("hidden");
+                calibCountSec.classList.add("hidden");
+                calibHeading.textContent = "CALIBRATING";
+            }
+        }, 300);
+    }, delay + 600);
+}
+
+// Start sequence on load
+runBootSequence();
+
+
 
 // Input
 const input = new InputAdapter((data) => {
@@ -119,27 +231,50 @@ const input = new InputAdapter((data) => {
         uiIds.momentumArc.style.strokeDashoffset = dashOffset;
     }
 
-    // Turn Indicators Edge Fades
+    // Turn Indicators Edge Fades + Popup
+    const turnNotif = uiIds.turnNotification;
     if (data.turn === "LEFT" && uiIds.turnLeft && uiIds.turnRight) {
         uiIds.turnLeft.style.opacity = 0.8;
         uiIds.turnRight.style.opacity = 0;
+        if (hasCompletedTutorial && turnNotif) {
+            turnNotif.textContent = "◀  TURNED LEFT";
+            turnNotif.classList.add("visible");
+        }
     } else if (data.turn === "RIGHT" && uiIds.turnLeft && uiIds.turnRight) {
         uiIds.turnRight.style.opacity = 0.8;
         uiIds.turnLeft.style.opacity = 0;
+        if (hasCompletedTutorial && turnNotif) {
+            turnNotif.textContent = "TURNED RIGHT  ▶";
+            turnNotif.classList.add("visible");
+        }
     } else if (uiIds.turnLeft && uiIds.turnRight) {
         uiIds.turnLeft.style.opacity = 0;
         uiIds.turnRight.style.opacity = 0;
+        if (turnNotif) turnNotif.classList.remove("visible");
     }
 
     const calibPct = Math.min(100, Math.round(data.calibration * 100));
-    calibProgFill.style.width = calibPct + "%";
-    calibPctEl.textContent = calibPct + "%";
+    if (!hasCompletedTutorial) {
+        calibProgFill.style.transition = "width 0.3s ease";
+        calibProgFill.style.width = calibPct + "%";
+        calibPctEl.textContent = calibPct + "%";
+    }
 
     if (_wasCalibrating && data.status !== "CALIBRATING" && data.status !== "NO PLAYER") {
         _calibrationComplete = true;  // mark that server is ready
+        isCalibrated = true;
+        _wasCalibrating = false;
+
         if (_personalizationDone && !_countdownStarted) {
-            _countdownStarted = true;
-            _startCountdown();
+            if (!tutorialStarted) {
+                // Small delay for visual completion
+                setTimeout(() => {
+                    startTutorial();
+                }, 500);
+            } else {
+                _countdownStarted = true;
+                _startCountdown();
+            }
         }
     }
     if (data.status === "CALIBRATING") _wasCalibrating = true;
@@ -331,6 +466,10 @@ window.addEventListener("keydown", (e) => {
 // ─── Game Loop ────────────────────────────────────────────────────────────────
 function animate() {
     requestAnimationFrame(animate);
+
+    if (holographicGuide && !hasCompletedTutorial) {
+        holographicGuide.update(input);
+    }
 
     gameManager.update();
     character.update();

@@ -37,7 +37,7 @@ MOMENTUM_GAIN      = 0.15   # How much momentum each bounce adds
 MOMENTUM_DECAY     = 0.92   # Multiplicative friction when not bouncing
 
 # Auto-calibration clamps for the computed BOUNCE_THRESHOLD
-CALIB_FRAMES_NEEDED     = 60     # Number of frames to sample noise
+CALIB_FRAMES_NEEDED     = 30     # Number of frames to sample noise
 CALIB_NOISE_MULTIPLIER  = 1.5    # Scale factor applied to max observed noise
 CALIB_THRESHOLD_MIN     = 0.0015 # Hard floor for calibrated threshold
 CALIB_THRESHOLD_MAX     = 0.01   # Hard ceiling for calibrated threshold
@@ -55,4 +55,4 @@ SERVER_HOST        = ''       # Bind to all interfaces
 SERVER_PORT        = 5000
 CAMERA_INDEX       = 0        # OpenCV VideoCapture index (0 = default webcam)
 LOOP_SLEEP         = 0.03     # Seconds between game-loop ticks (~33 fps cap)
-CALIB_PROGRESS_FRAMES = 60   # Denominator for calib progress 0.0 → 1.0
+CALIB_PROGRESS_FRAMES = 30   # Denominator for calib progress 0.0 → 1.0
