@@ -3,3 +3,5 @@ python-socketio
 opencv-python-headless
 mediapipe
 numpy
+google-genai
+python-dotenv
