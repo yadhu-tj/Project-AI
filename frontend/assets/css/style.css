@@ -760,3 +760,257 @@ body {
         opacity: 0.2;
     }
 }
+
+/* ═══════════════════════════════════════════
+   PRE-GAME PERSONALIZATION OVERLAY
+═══════════════════════════════════════════ */
+
+#personalization-overlay {
+    position: fixed;
+    inset: 0;
+    z-index: 9999;
+    background: radial-gradient(ellipse at 50% 30%, rgba(0, 20, 40, 0.97) 0%, rgba(0, 0, 0, 0.99) 100%);
+    backdrop-filter: blur(20px);
+    -webkit-backdrop-filter: blur(20px);
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    gap: 10px;
+    opacity: 1;
+    transition: opacity 0.5s ease, transform 0.5s ease;
+}
+
+#personalization-overlay.perso-hide {
+    opacity: 0;
+    transform: scale(1.04);
+    pointer-events: none;
+}
+
+/* Scanline overlay texture */
+#personalization-overlay::before {
+    content: '';
+    position: absolute;
+    inset: 0;
+    background: repeating-linear-gradient(0deg,
+            transparent,
+            transparent 2px,
+            rgba(0, 255, 255, 0.015) 2px,
+            rgba(0, 255, 255, 0.015) 4px);
+    pointer-events: none;
+    z-index: 0;
+}
+
+.perso-system-label {
+    font-family: 'Orbitron', monospace;
+    font-size: 0.65rem;
+    letter-spacing: 6px;
+    color: rgba(0, 255, 255, 0.35);
+    text-transform: uppercase;
+    margin: 0;
+    position: relative;
+    z-index: 1;
+}
+
+.perso-title {
+    font-family: 'Orbitron', monospace;
+    font-size: clamp(2.8rem, 7vw, 5rem);
+    font-weight: 900;
+    letter-spacing: 10px;
+    margin: 0 0 4px;
+    color: #ffffff;
+    text-shadow:
+        0 0 15px rgba(0, 255, 255, 0.5),
+        0 0 50px rgba(0, 255, 255, 0.2);
+    position: relative;
+    z-index: 1;
+}
+
+.perso-title-accent {
+    color: #00ffff;
+    text-shadow:
+        0 0 10px rgba(0, 255, 255, 0.9),
+        0 0 30px rgba(0, 255, 255, 0.5),
+        0 0 60px rgba(0, 255, 255, 0.2);
+}
+
+.perso-subtitle {
+    font-family: 'Rajdhani', sans-serif;
+    font-size: clamp(0.9rem, 2vw, 1.1rem);
+    letter-spacing: 3px;
+    color: rgba(180, 180, 180, 0.6);
+    margin: 0 0 18px;
+    text-transform: uppercase;
+    position: relative;
+    z-index: 1;
+}
+
+/* Glassmorphic form card */
+.perso-form {
+    position: relative;
+    z-index: 1;
+    display: flex;
+    flex-direction: column;
+    gap: 18px;
+    width: min(480px, 90vw);
+    padding: 36px 40px;
+    background: rgba(0, 10, 20, 0.65);
+    border: 1px solid rgba(0, 255, 255, 0.25);
+    border-radius: 16px;
+    box-shadow:
+        0 0 0 1px rgba(0, 255, 255, 0.05),
+        0 0 40px rgba(0, 255, 255, 0.08),
+        0 24px 64px rgba(0, 0, 0, 0.6),
+        inset 0 1px 0 rgba(255, 255, 255, 0.05);
+    backdrop-filter: blur(12px);
+    -webkit-backdrop-filter: blur(12px);
+}
+
+/* Top neon accent line on form card */
+.perso-form::before {
+    content: '';
+    position: absolute;
+    top: -1px;
+    left: 15%;
+    right: 15%;
+    height: 1px;
+    background: linear-gradient(90deg, transparent, #00ffff, transparent);
+    box-shadow: 0 0 8px #00ffff;
+}
+
+.perso-field {
+    display: flex;
+    flex-direction: column;
+    gap: 6px;
+}
+
+.perso-label {
+    font-family: 'Orbitron', monospace;
+    font-size: 0.6rem;
+    letter-spacing: 5px;
+    color: rgba(0, 255, 255, 0.6);
+    text-transform: uppercase;
+}
+
+.perso-input {
+    background: rgba(0, 255, 255, 0.03);
+    border: none;
+    border-bottom: 1px solid rgba(0, 255, 255, 0.3);
+    border-radius: 4px 4px 0 0;
+    color: #e0f8ff;
+    font-family: 'Rajdhani', sans-serif;
+    font-size: 1.1rem;
+    font-weight: 600;
+    letter-spacing: 2px;
+    padding: 10px 12px;
+    outline: none;
+    transition: border-color 0.25s ease, background 0.25s ease, box-shadow 0.25s ease;
+    width: 100%;
+    box-sizing: border-box;
+}
+
+.perso-input::placeholder {
+    color: rgba(100, 150, 170, 0.4);
+    font-weight: 400;
+    letter-spacing: 1px;
+}
+
+.perso-input:focus {
+    border-bottom-color: #00ffff;
+    background: rgba(0, 255, 255, 0.06);
+    box-shadow: 0 2px 12px rgba(0, 255, 255, 0.15);
+}
+
+/* INITIALIZE button */
+.perso-btn {
+    margin-top: 8px;
+    padding: 14px 0;
+    background: linear-gradient(135deg, rgba(0, 255, 255, 0.12) 0%, rgba(0, 180, 255, 0.08) 100%);
+    border: 1px solid rgba(0, 255, 255, 0.55);
+    border-radius: 8px;
+    color: #00ffff;
+    font-family: 'Orbitron', monospace;
+    font-size: 0.95rem;
+    font-weight: 700;
+    letter-spacing: 8px;
+    cursor: pointer;
+    text-transform: uppercase;
+    transition: background 0.25s ease, box-shadow 0.25s ease, transform 0.15s ease;
+    box-shadow: 0 0 20px rgba(0, 255, 255, 0.12), inset 0 0 20px rgba(0, 255, 255, 0.04);
+    position: relative;
+    overflow: hidden;
+}
+
+.perso-btn::after {
+    content: '';
+    position: absolute;
+    inset: 0;
+    background: linear-gradient(135deg, rgba(255, 255, 255, 0.05), transparent);
+    opacity: 0;
+    transition: opacity 0.25s;
+}
+
+.perso-btn:hover:not(:disabled) {
+    background: linear-gradient(135deg, rgba(0, 255, 255, 0.22) 0%, rgba(0, 180, 255, 0.14) 100%);
+    box-shadow:
+        0 0 35px rgba(0, 255, 255, 0.35),
+        0 0 80px rgba(0, 255, 255, 0.12),
+        inset 0 0 25px rgba(0, 255, 255, 0.08);
+    transform: translateY(-1px);
+}
+
+.perso-btn:hover:not(:disabled)::after {
+    opacity: 1;
+}
+
+.perso-btn:active:not(:disabled) {
+    transform: translateY(1px);
+}
+
+.perso-btn:disabled {
+    opacity: 0.5;
+    cursor: not-allowed;
+    animation: perso-btn-loading 1.6s ease-in-out infinite;
+}
+
+@keyframes perso-btn-loading {
+
+    0%,
+    100% {
+        box-shadow: 0 0 20px rgba(0, 255, 255, 0.15);
+    }
+
+    50% {
+        box-shadow: 0 0 45px rgba(0, 255, 255, 0.55), 0 0 90px rgba(0, 255, 255, 0.2);
+    }
+}
+
+/* Status text below button */
+.perso-status {
+    font-family: 'Orbitron', monospace;
+    font-size: 0.62rem;
+    letter-spacing: 4px;
+    text-align: center;
+    color: rgba(0, 255, 255, 0.7);
+    margin: 0;
+    min-height: 1.2em;
+    text-transform: uppercase;
+    animation: perso-status-blink 1.2s step-end infinite;
+}
+
+.perso-status.perso-error {
+    color: #ff4466;
+    animation: none;
+}
+
+@keyframes perso-status-blink {
+
+    0%,
+    100% {
+        opacity: 1;
+    }
+
+    50% {
+        opacity: 0.3;
+    }
+}
