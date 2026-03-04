@@ -13,6 +13,36 @@
 
 <body>
 
+    <!-- ═══ PRE-GAME PERSONALIZATION OVERLAY ═══ -->
+    <div id="personalization-overlay">
+        <span class="corner tl" style="border-color:#00ffff;"></span>
+        <span class="corner tr" style="border-color:#00ffff;"></span>
+        <span class="corner bl" style="border-color:#00ffff;"></span>
+        <span class="corner br" style="border-color:#00ffff;"></span>
+
+        <p class="perso-system-label">// MOTION LINK v1.0 — SYSTEM BOOT //</p>
+        <h1 class="perso-title">PLAYER<span class="perso-title-accent">::</span>INIT</h1>
+        <p class="perso-subtitle">Identify yourself. The AI will forge your trial.</p>
+
+        <form id="perso-form" class="perso-form" autocomplete="off">
+            <div class="perso-field">
+                <label for="perso-name" class="perso-label">PLAYER NAME</label>
+                <input id="perso-name" class="perso-input" type="text" placeholder="e.g. Ghost_Runner" required />
+            </div>
+            <div class="perso-field">
+                <label for="perso-class" class="perso-label">PLAYER CLASS / ID</label>
+                <input id="perso-class" class="perso-input" type="text" placeholder="e.g. 10-A or AGENT-7" required />
+            </div>
+            <div class="perso-field">
+                <label for="perso-topic" class="perso-label">TOPIC OF INTEREST</label>
+                <input id="perso-topic" class="perso-input" type="text" placeholder="e.g. Football, Cyberpunk, Space"
+                    required />
+            </div>
+            <button id="perso-init-btn" class="perso-btn" type="submit">INITIALIZE</button>
+            <p id="perso-status" class="perso-status"></p>
+        </form>
+    </div>
+
     <div id="flash-overlay" class="flash-overlay hidden">
         <h2 id="flash-text" class="flash-text"></h2>
     </div>

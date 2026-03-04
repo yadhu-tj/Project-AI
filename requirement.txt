@@ -1,5 +1,7 @@
-eventLet
-python-socketio
-opencv-python-headless
-mediapipe
-numpy
+eventlet==0.40.4
+python-socketio==5.16.0
+opencv-python-headless>=4.8.0   # pin to exact version after confirming: pip show opencv-python-headless
+mediapipe==0.10.32
+numpy==1.26.4
+google-genai==1.65.0
+python-dotenv==1.2.2

@@ -1,12 +1,30 @@
 import eventlet
 eventlet.monkey_patch()
+
+# Load .env file — find_dotenv() walks UP the directory tree until it finds .env
+try:
+    from dotenv import load_dotenv, find_dotenv
+    _dotenv_path = find_dotenv(usecwd=False)  # searches from this file upward
+    if _dotenv_path:
+        load_dotenv(_dotenv_path)
+        print(f"✅ .env loaded from: {_dotenv_path}")
+    else:
+        print("⚠️  No .env file found — relying on system environment variables.")
+except ImportError:
+    pass  # python-dotenv not installed; rely on system env vars
+
 import socketio
 import cv2
 import mediapipe as mp
 import time
 import os
 import math
+import json
+import re
+import requests
 import numpy as np
+
+
 from config import (
     CENTER_LEFT_LIMIT, CENTER_RIGHT_LIMIT,
     TURN_LEFT_TRIGGER, TURN_RIGHT_TRIGGER,
@@ -23,6 +41,19 @@ from config import (
 
 # --- 0. SERVER SETUP ---
 sio = socketio.Server(cors_allowed_origins='*')
+
+# --- LLM SETUP (Gemini REST API) ---
+# Uses direct HTTP — no SDK version issues.
+# gemini-2.5-flash on the free tier via v1beta.
+_GEMINI_API_KEY = os.environ.get("GEMINI_API_KEY", "").strip()
+_GEMINI_URL = (
+    "https://generativelanguage.googleapis.com"
+    "/v1beta/models/gemini-2.5-flash:generateContent"
+)  # API key passed via header, not URL, to keep it out of logs
+if _GEMINI_API_KEY:
+    print("✅ Gemini REST API ready (gemini-2.5-flash / v1beta).")
+else:
+    print("⚠️  GEMINI_API_KEY not set. Personalization will return fallback questions.")
 
 # --- AI SETUP ---
 BaseOptions = mp.tasks.BaseOptions
@@ -75,6 +106,105 @@ def connect(sid, environ):
 @sio.event
 def disconnect(sid):
     print(f"❌ CLIENT DISCONNECTED: {sid}")
+    _player_registry.pop(sid, None)
+
+# --- IN-MEMORY PLAYER REGISTRY ---
+_player_registry = {}  # { sid: { name, class, topic } }
+
+_FALLBACK_QUESTIONS = [
+    {"text": "What is 8 × 7?",                  "optA": "A) 54",   "optB": "B) 56",  "answer": "B"},
+    {"text": "Which is a prime number?",          "optA": "A) 9",    "optB": "B) 11", "answer": "B"},
+    {"text": "What is 144 ÷ 12?",                "optA": "A) 12",   "optB": "B) 13", "answer": "A"},
+    {"text": "Square root of 81?",               "optA": "A) 9",    "optB": "B) 7",  "answer": "A"},
+    {"text": "15% of 200 = ?",                   "optA": "A) 30",   "optB": "B) 25", "answer": "A"},
+    {"text": "True or False: 2³ = 8",            "optA": "A) True",  "optB": "B) False", "answer": "A"},
+    {"text": "How many sides has a hexagon?",     "optA": "A) 5",    "optB": "B) 6",  "answer": "B"},
+    {"text": "0.5 × 0.5 = ?",                   "optA": "A) 0.25", "optB": "B) 0.5", "answer": "A"},
+    {"text": "If f(x) = x² – 4, f(3) = ?",      "optA": "A) 5",    "optB": "B) 9",  "answer": "A"},
+    {"text": "log₂(64) = ?",                     "optA": "A) 5",    "optB": "B) 6",  "answer": "B"},
+]
+
+def _generate_questions(topic: str) -> list:
+    """
+    Calls the Gemini REST API directly (v1beta / gemini-1.5-flash).
+    Returns a list of 10 dicts: [{text, optA, optB, answer}, ...]
+    Falls back to _FALLBACK_QUESTIONS if API key is missing or call fails.
+    """
+    if not _GEMINI_API_KEY:
+        print("[LLM] No API key — using fallback questions.")
+        return _FALLBACK_QUESTIONS
+
+    prompt = (
+        f'Generate exactly 10 trivia questions about the topic: "{topic}".\n'
+        'Return ONLY a valid JSON array — no markdown, no explanation, no code fences.\n'
+        'Each element must strictly follow this schema:\n'
+        '[{"text": "Question text?", "optA": "A) Option one", "optB": "B) Option two", "answer": "A" or "B"}]\n'
+        'Rules:\n'
+        '- Exactly 10 elements.\n'
+        '- "answer" must be exactly the string "A" or the string "B".\n'
+        '- optA must start with "A) " and optB must start with "B) ".\n'
+        '- The correct answer must be factually accurate.\n'
+        '- Output raw JSON only.'
+    )
+
+    url = _GEMINI_URL
+    headers = {"x-goog-api-key": _GEMINI_API_KEY}
+    payload = {
+        "contents": [{"parts": [{"text": prompt}]}],
+        "generationConfig": {"temperature": 0.7}
+    }
+
+    resp = requests.post(url, json=payload, headers=headers, timeout=30)
+    resp.raise_for_status()  # raises HTTPError on 4xx/5xx
+
+    data = resp.json()
+    try:
+        raw = data["candidates"][0]["content"]["parts"][0]["text"].strip()
+    except (KeyError, IndexError, TypeError) as e:
+        raise ValueError(f"Unexpected API response structure: {e}") from e
+
+    # Strip markdown fences if the model adds them despite instructions
+    raw = re.sub(r'^```(?:json)?\s*', '', raw, flags=re.IGNORECASE)
+    raw = re.sub(r'\s*```$', '', raw)
+
+    questions = json.loads(raw)
+
+    if not isinstance(questions, list) or len(questions) != 10:
+        raise ValueError(f"Expected 10 questions, got {len(questions) if isinstance(questions, list) else type(questions)}")
+
+    required_keys = {"text", "optA", "optB", "answer"}
+    for i, q in enumerate(questions):
+        if not required_keys.issubset(q.keys()):
+            raise ValueError(f"Question {i} missing keys: {required_keys - set(q.keys())}")
+        if q["answer"] not in ("A", "B"):
+            raise ValueError(f"Question {i} has invalid answer: {q['answer']!r}")
+
+    return questions
+
+
+@sio.event
+def request_questions(sid, data):
+    """
+    Socket.IO event: 'request_questions'
+    Payload: { name: str, classId: str, topic: str }
+    Emits 'questions_ready' with 10-question array, or 'questions_error' on failure.
+    """
+    name    = str(data.get('name',    'Player')).strip()
+    class_id= str(data.get('classId', 'Unknown')).strip()
+    topic   = str(data.get('topic',   'General Knowledge')).strip()
+
+    print(f"[LLM] [{sid}] Request — Player: '{name}' | Class: '{class_id}' | Topic: '{topic}'")
+
+    # Store player info
+    _player_registry[sid] = {'name': name, 'class': class_id, 'topic': topic}
+
+    try:
+        questions = _generate_questions(topic)
+        print(f"[LLM] [{sid}] ✅ Sending {len(questions)} questions.")
+        sio.emit('questions_ready', questions, to=sid)
+    except Exception as e:
+        print(f"[LLM] [{sid}] ❌ Generation failed: {e}")
+        sio.emit('questions_error', {'message': 'Failed to generate questions. Please try again.'}, to=sid)
 
 # --- IMPORT MOTION LOGIC ---
 from motion_logic.gesture_detection import calculate_arm_angle, calculate_wiper_angle

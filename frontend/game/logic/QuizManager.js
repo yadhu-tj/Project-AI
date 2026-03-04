@@ -9,10 +9,15 @@ export class QuizManager {
         this.interval = null;
         this.currentQuestion = null;
 
-        // ── Arm-raise debounce: ignore arm spikes shorter than this cooldown ──
-        // This prevents walking arm-swings from instantly selecting an answer.
+        // ── Arm-raise debounce ──────────────────────────────────────────────────
         this._armCooldown = 0;
-        this._ARM_COOLDOWN_FRAMES = CONFIG.ARM_COOLDOWN_FRAMES; // Grace window frames
+        this._ARM_COOLDOWN_FRAMES = CONFIG.ARM_COOLDOWN_FRAMES;
+
+        // ── No-repeat deck ──────────────────────────────────────────────────────
+        // All questions are merged into a shuffled deck. A pointer advances
+        // through it so a question can't repeat until ALL have been shown.
+        this._deck = [];
+        this._deckIndex = 0;
 
         // ── Question banks ──────────────────────────────────────────────────────
         this.easyQuestions = [
@@ -46,6 +51,35 @@ export class QuizManager {
         this._questEl = document.getElementById("quiz-question");
         this._optAEl = document.getElementById("quiz-opt-a");
         this._optBEl = document.getElementById("quiz-opt-b");
+
+        // Build the initial deck from default questions.
+        // PersonalizationManager will call _buildDeck() again after injecting new banks.
+        this._buildDeck();
+    }
+
+    // ── Shuffle all questions into a flat deck ────────────────────────────────
+    _buildDeck() {
+        const all = [...this.easyQuestions, ...this.hardQuestions];
+        // Fisher-Yates shuffle
+        for (let i = all.length - 1; i > 0; i--) {
+            const j = Math.floor(Math.random() * (i + 1));
+            [all[i], all[j]] = [all[j], all[i]];
+        }
+        this._deck = all;
+        this._deckIndex = 0;
+        console.log(`[QuizManager] Deck built: ${this._deck.length} questions, no repeats until exhausted.`);
+    }
+
+    // ── Draw next question without repeat ─────────────────────────────────────
+    _drawQuestion() {
+        if (this._deck.length === 0) return null;  // banks are empty
+        if (this._deckIndex >= this._deck.length) {
+            // All questions seen — reshuffle for the next round
+            this._buildDeck();
+            // Guard: rebuilding could still result in an empty deck
+            if (this._deck.length === 0) return null;
+        }
+        return this._deck[this._deckIndex++] ?? null;  // never return undefined
     }
 
     // ── Public: called once when AT_DOOR state is detected ────────────────────
@@ -53,11 +87,16 @@ export class QuizManager {
         if (this.active) return;
         this.active = true;
         this.timer = CONFIG.QUIZ_TIMER_START;
-        this._armCooldown = this._ARM_COOLDOWN_FRAMES; // Start with a grace window
+        this._armCooldown = this._ARM_COOLDOWN_FRAMES;
 
-        // Random pool selection (simulates luck of the door chosen)
-        const pool = Math.random() > 0.5 ? this.easyQuestions : this.hardQuestions;
-        this.currentQuestion = pool[Math.floor(Math.random() * pool.length)];
+        // Draw the next question from the no-repeat deck
+        this.currentQuestion = this._drawQuestion();
+        if (this.currentQuestion === null) {
+            // No questions available — reset active so the door can retrigger
+            this.active = false;
+            console.warn('[QuizManager] No questions in deck — skipping quiz.');
+            return;
+        }
 
         // Populate UI
         this._questEl.textContent = this.currentQuestion.text;
