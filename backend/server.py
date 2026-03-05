@@ -37,6 +37,7 @@ from config import (
     SERVER_HOST, SERVER_PORT,
     CAMERA_INDEX, LOOP_SLEEP,
     BOUNCE_THRESHOLD as _DEFAULT_BOUNCE_THRESHOLD,
+    DEV_SKIP_AI_QUESTIONS,
 )
 
 # --- 0. SERVER SETUP ---
@@ -78,6 +79,7 @@ cap = cv2.VideoCapture(CAMERA_INDEX)
 # Serve frontend file
 static_files = {
     '/': '../frontend/index.html',
+    '/leaderboard.html': '../frontend/leaderboard.html',
     '/assets': '../frontend/assets',
     '/game': '../frontend/game',
 }
@@ -198,6 +200,25 @@ def request_questions(sid, data):
     # Store player info
     _player_registry[sid] = {'name': name, 'class': class_id, 'topic': topic}
 
+    # ── DEV MODE: skip Gemini API ──────────────────────────────────────────────
+    if DEV_SKIP_AI_QUESTIONS:
+        print(f"[LLM] [{sid}] ⚠️ DEV_SKIP_AI_QUESTIONS=True — returning fallback questions.")
+        fallback = [
+            {"text": "What is the powerhouse of the cell?",  "optA": "A) Mitochondria",    "optB": "B) Nucleus",       "answer": "A"},
+            {"text": "What planet is closest to the Sun?",   "optA": "A) Venus",           "optB": "B) Mercury",      "answer": "B"},
+            {"text": "How many sides does a hexagon have?",  "optA": "A) 6",               "optB": "B) 8",            "answer": "A"},
+            {"text": "What is the chemical symbol for water?", "optA": "A) H2O",           "optB": "B) CO2",          "answer": "A"},
+            {"text": "Who wrote Romeo and Juliet?",           "optA": "A) Shakespeare",     "optB": "B) Dickens",      "answer": "A"},
+            {"text": "What is 7 × 8?",                       "optA": "A) 54",              "optB": "B) 56",           "answer": "B"},
+            {"text": "What gas do plants absorb?",           "optA": "A) Oxygen",          "optB": "B) Carbon Dioxide","answer": "B"},
+            {"text": "What is the largest ocean on Earth?",  "optA": "A) Pacific",         "optB": "B) Atlantic",     "answer": "A"},
+            {"text": "What colour is the sky?",              "optA": "A) Blue",            "optB": "B) Green",        "answer": "A"},
+            {"text": "How many continents are there?",        "optA": "A) 6",               "optB": "B) 7",            "answer": "B"},
+        ]
+        sio.emit('questions_ready', fallback, to=sid)
+        return
+    # ─────────────────────────────────────────────────────────────────────────
+
     try:
         questions = _generate_questions(topic)
         print(f"[LLM] [{sid}] ✅ Sending {len(questions)} questions.")
@@ -205,6 +226,72 @@ def request_questions(sid, data):
     except Exception as e:
         print(f"[LLM] [{sid}] ❌ Generation failed: {e}")
         sio.emit('questions_error', {'message': 'Failed to generate questions. Please try again.'}, to=sid)
+
+# --- LEADERBOARD LOGIC ---
+LEADERBOARD_FILE = os.path.join(current_dir, 'leaderboard.json')
+
+def load_leaderboard():
+    if not os.path.exists(LEADERBOARD_FILE):
+        return []
+    try:
+        with open(LEADERBOARD_FILE, 'r') as f:
+            return json.load(f)
+    except Exception as e:
+        print(f"⚠️ Error loading leaderboard: {e}")
+        return []
+
+def save_leaderboard(data):
+    try:
+        with open(LEADERBOARD_FILE, 'w') as f:
+            json.put(f, indent=2)
+    except Exception as e:
+        print(f"⚠️ Error saving leaderboard: {e}")
+
+def save_leaderboard(data):
+    try:
+        with open(LEADERBOARD_FILE, 'w') as f:
+            json.dump(data, f, indent=2)
+    except Exception as e:
+        print(f"⚠️ Error saving leaderboard: {e}")
+
+@sio.event
+def submit_score(sid, data):
+    """
+    Socket.IO event: 'submit_score'
+    Payload: { time_ms: int, time_str: str }
+    """
+    time_ms = data.get('time_ms')
+    time_str = data.get('time_str')
+
+    if time_ms is None or not time_str:
+        return
+
+    player_info = _player_registry.get(sid, {'name': 'Unknown', 'class': 'N/A'})
+    
+    entry = {
+        'name': player_info['name'],
+        'class': player_info['class'],
+        'time_ms': time_ms,
+        'time_str': time_str,
+        'timestamp': int(time.time() * 1000)
+    }
+
+    board = load_leaderboard()
+    board.append(entry)
+    board.sort(key=lambda x: x['time_ms'])
+    
+    # Keep top 100 to prevent infinite growth
+    board = board[:100]
+    
+    save_leaderboard(board)
+    print(f"🏆 Score submitted by {entry['name']} - {entry['time_str']}")
+    sio.emit('leaderboard_update', board)
+
+@sio.event
+def request_leaderboard(sid):
+    board = load_leaderboard()
+    sio.emit('leaderboard_update', board, to=sid)
+
 
 # --- IMPORT MOTION LOGIC ---
 from motion_logic.gesture_detection import calculate_arm_angle, calculate_wiper_angle

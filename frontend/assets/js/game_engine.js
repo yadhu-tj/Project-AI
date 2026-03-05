@@ -6,6 +6,7 @@ import { LevelManager } from "../../game/world/LevelManager.js";
 import { GameManager } from "../../game/logic/GameManager.js";
 import { QuizManager } from "../../game/logic/QuizManager.js";
 import { PersonalizationManager } from "../../game/PersonalizationManager.js";
+import { HolographicTutorial } from "../../game/HolographicTutorial.js";
 import { CONFIG } from "../../game/config.js";
 
 // Scene
@@ -37,8 +38,10 @@ dirLight.position.set(3, 10, 10);
 dirLight.castShadow = true;
 scene.add(dirLight);
 
-// --- LEVEL MANAGER ---
-const levelManager = new LevelManager(scene);
+// --- LEVEL MANAGER (deferred — world generates AFTER tutorial) ---
+const levelManager = new LevelManager(scene, { deferred: true });
+// Give the factory a scene ref so setTheme() can update fog/background
+levelManager.factory._scene = scene;
 
 // UI Elements
 const uiIds = {
@@ -61,12 +64,14 @@ const calibNumberEl = document.getElementById("calib-number");
 
 let _wasCalibrating = true;
 let _countdownStarted = false;
-// Set to true once telemetry confirms the server has left CALIBRATING state.
 let _calibrationComplete = false;
-// Blocks telemetry-driven countdown until personalization overlay is dismissed.
 let _personalizationDone = false;
+let _tutorialComplete = false;  // set to true when HolographicTutorial finishes
 
 function _startCountdown() {
+    // Bring back the calib overlay for the 3-2-1-GO! display
+    calibOverlay.classList.remove('hidden', 'calib-fade-out');
+    calibOverlay.style.opacity = '';
     calibPhaseEl.classList.add("hidden");
     calibHeading.textContent = "GET READY";
     calibCountSec.classList.remove("hidden");
@@ -136,8 +141,8 @@ const input = new InputAdapter((data) => {
     calibPctEl.textContent = calibPct + "%";
 
     if (_wasCalibrating && data.status !== "CALIBRATING" && data.status !== "NO PLAYER") {
-        _calibrationComplete = true;  // mark that server is ready
-        if (_personalizationDone && !_countdownStarted) {
+        _calibrationComplete = true;
+        if (_personalizationDone && _tutorialComplete && !_countdownStarted) {
             _countdownStarted = true;
             _startCountdown();
         }
@@ -164,27 +169,45 @@ function triggerFlash(type, message) {
 // --- GAME MANAGER ---
 const gameManager = new GameManager(character, levelManager, input, triggerFlash);
 
+// Wire level-theme change: recolour the world each time the level increases
+gameManager.onLevelChange = (newLevel) => {
+    levelManager.factory.setTheme(newLevel);
+};
+
 // --- QUIZ MANAGER ---
 const quizManager = new QuizManager(gameManager, input);
 
-// --- PERSONALIZATION MANAGER ---
-// A shared socket created here (separate from InputAdapter's internal one)
-// so PersonalizationManager can emit/listen for personalization events.
-const _sharedSocket = io(CONFIG.SOCKET_URL);
-const personalizationManager = new PersonalizationManager(
-    _sharedSocket,
-    quizManager,
+// --- HOLOGRAPHIC TUTORIAL ---
+const holographicTutorial = new HolographicTutorial(
+    scene, camera, input,
     () => {
-        // onComplete: personalization done.
-        // If calibration already finished while the player was filling the form,
-        // start the countdown immediately. Otherwise, unlock the telemetry path
-        // and let it fire once the server transitions to ACTIVE.
-        _personalizationDone = true;
+        // Tutorial complete: now spawn the world, then fire countdown
+        _tutorialComplete = true;
+        levelManager.initialize();
         if (_calibrationComplete && !_countdownStarted) {
             _countdownStarted = true;
             _startCountdown();
         }
+    }
+);
+
+// --- PERSONALIZATION MANAGER ---
+const _sharedSocket = io(CONFIG.SOCKET_URL);
+
+const personalizationManager = new PersonalizationManager(
+    _sharedSocket,
+    quizManager,
+    (playerName) => {
+        // Personalization done — hide calib overlay, start animate loop, launch tutorial
+        _personalizationDone = true;
+        _playerNameForVictory = (playerName || 'AGENT').toUpperCase();
+
+        // Hide calib overlay so the void tutorial scene is fully visible
+        calibOverlay.classList.add('calib-fade-out');
+        setTimeout(() => calibOverlay.classList.add('hidden'), 420);
+
         animate();
+        holographicTutorial.start(playerName || 'AGENT');
     }
 );
 personalizationManager.init();
@@ -230,12 +253,30 @@ function hideGameOver() {
 const victoryOverlay = document.getElementById("victory-overlay");
 const finalTimeDisplay = document.getElementById("final-time-display");
 let victoryVisible = false;
+let _playerNameForVictory = 'AGENT';  // filled in by personalization callback
 
 function showVictory() {
     if (victoryVisible) return;
     victoryVisible = true;
-    finalTimeDisplay.textContent = gameManager.formatTime(gameManager.endTime - gameManager.startTime);
-    victoryOverlay.classList.remove("hidden");
+
+    const timeMs = gameManager.endTime - gameManager.startTime;
+    const formattedTime = gameManager.formatTime(timeMs);
+
+    finalTimeDisplay.textContent = formattedTime;
+
+    // Show player name
+    const nameEl = document.getElementById('victory-player-name');
+    if (nameEl) nameEl.textContent = _playerNameForVictory;
+
+    // Submit score to leaderboard
+    if (_sharedSocket) {
+        _sharedSocket.emit('submit_score', {
+            time_ms: timeMs,
+            time_str: formattedTime
+        });
+    }
+
+    victoryOverlay.classList.remove('hidden');
 }
 
 function hideVictory() {
@@ -333,8 +374,21 @@ function animate() {
     requestAnimationFrame(animate);
 
     gameManager.update();
-    character.update();
+    // Tutorial freeze controls:
+    //  freezeCharacter = true  → skip all animation (Stage 2)
+    //  freezeWalkOnly  = true  → run arms but zero momentum (Stage 3)
+    if (!holographicTutorial.freezeCharacter) {
+        if (holographicTutorial.freezeWalkOnly) {
+            const savedMom = input.momentum;
+            input.momentum = 0;
+            character.update();
+            input.momentum = savedMom;
+        } else {
+            character.update();
+        }
+    }
     quizManager.update();
+    holographicTutorial.update();
 
     if (gameManager.gameState === "AT_JUNCTION" && !gameManager.junctionDismissed) {
         showJunctionOverlay();

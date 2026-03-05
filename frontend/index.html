@@ -39,8 +39,27 @@
                     required />
             </div>
             <button id="perso-init-btn" class="perso-btn" type="submit">INITIALIZE</button>
+            <button id="view-leaderboard-btn" class="perso-btn" type="button"
+                style="margin-top: 10px; background: rgba(0,255,255,0.1); border-color: #00ffff; color: #00ffff;"
+                onclick="window.open('leaderboard.html', '_blank')">VIEW LEADERBOARD</button>
             <p id="perso-status" class="perso-status"></p>
         </form>
+    </div>
+
+    <!-- ═══ HOLOGRAPHIC TUTORIAL HUD ═══ -->
+    <div id="tutorial-hud" class="hidden">
+        <p id="tutorial-stage-label">STAGE 1 · LOCOMOTION</p>
+        <p id="tutorial-text"></p>
+    </div>
+
+    <!-- Tutorial screen-edge glows (for lean and hand-raise demos) -->
+    <div id="tut-glow-left" class="tut-edge-glow tut-edge-left  hidden"></div>
+    <div id="tut-glow-right" class="tut-edge-glow tut-edge-right hidden"></div>
+    <div id="tut-glow-top" class="tut-edge-glow tut-edge-top   hidden"></div>
+
+    <!-- Tutorial demo card: shown center-screen for Stages 2 & 3 -->
+    <div id="tutorial-demo-card" class="hidden">
+        <div class="tut-demo-inner" id="tutorial-demo-content"></div>
     </div>
 
     <div id="flash-overlay" class="flash-overlay hidden">
@@ -200,6 +219,11 @@
             All 3 levels cleared.
         </p>
 
+        <p class="junction-body" style="color:#00ff88; font-size:1.3rem; letter-spacing:3px; margin:4px 0;">
+            WELL DONE, <span id="victory-player-name"
+                style="font-family:'Orbitron',monospace; font-weight:700;">AGENT</span>.
+        </p>
+
         <p class="junction-body" style="margin-top:4px;">
             Final Time:&nbsp;
             <span id="final-time-display" class="highlight"
@@ -210,6 +234,13 @@
             style="border-color: rgba(0,255,136,0.25); background: rgba(0,255,136,0.05); color: #666; margin-top:16px;">
             Press &nbsp;<span style="color:#00ff88; font-weight:700; font-family:'Orbitron',monospace;">Q</span>&nbsp;
             to speedrun again
+        </div>
+
+        <div class="junction-dismiss"
+            style="border-color: rgba(0,255,255,0.25); background: rgba(0,255,255,0.05); color: #666; margin-top:16px; cursor: pointer;"
+            onclick="window.open('leaderboard.html', '_blank')">
+            View &nbsp;<span
+                style="color:#00ffff; font-weight:700; font-family:'Orbitron',monospace;">LEADERBOARD</span>
         </div>
     </div>
 
@@ -268,7 +299,9 @@
 
     </div>
 
-    <script src="https://cdn.socket.io/4.7.2/socket.io.min.js"></script>
+    <script src="https://cdn.socket.io/4.7.2/socket.io.min.js"
+        integrity="sha384-mZLF4UVrpi/QTWPA7BjNPEnkIfRFn4ZEO3Qt/HFklTJBj/gBOV8G3HcKn4NfQblz"
+        crossorigin="anonymous"></script>
     <script type="module" src="./assets/js/game_engine.js"></script>
 </body>
 

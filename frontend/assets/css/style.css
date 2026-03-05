@@ -1,4 +1,192 @@
+/* ═══════════════════════════════════════════
+   TUTORIAL SCREEN-EDGE GLOWS
+═══════════════════════════════════════════ */
+.tut-edge-glow {
+    position: fixed;
+    z-index: 8800;
+    pointer-events: none;
+    opacity: 0;
+    transition: opacity 0.3s ease;
+}
+
+.tut-edge-glow.hidden {
+    display: none !important;
+}
+
+.tut-edge-glow.glow-on {
+    opacity: 1;
+}
+
+.tut-edge-left {
+    top: 0;
+    left: 0;
+    bottom: 0;
+    width: 22vw;
+    background: linear-gradient(to right, rgba(0, 255, 255, 0.55) 0%, transparent 100%);
+}
+
+.tut-edge-right {
+    top: 0;
+    right: 0;
+    bottom: 0;
+    width: 22vw;
+    background: linear-gradient(to left, rgba(0, 255, 255, 0.55) 0%, transparent 100%);
+}
+
+.tut-edge-top {
+    top: 0;
+    left: 0;
+    right: 0;
+    height: 28vh;
+    background: linear-gradient(to bottom, rgba(0, 255, 255, 0.45) 0%, transparent 100%);
+}
+
+/* ═══════════════════════════════════════════
+   TUTORIAL DEMO CARD  (Stage 2 & 3 callout)
+═══════════════════════════════════════════ */
+#tutorial-demo-card {
+    position: fixed;
+    top: 50%;
+    left: 50%;
+    transform: translate(-50%, -60%);
+    z-index: 8900;
+    pointer-events: none;
+    transition: opacity 0.35s ease;
+}
+
+#tutorial-demo-card.hidden {
+    opacity: 0;
+    pointer-events: none;
+}
+
+.tut-demo-inner {
+    background: rgba(0, 8, 18, 0.88);
+    border: 1px solid rgba(0, 255, 255, 0.4);
+    border-radius: 16px;
+    padding: 22px 40px;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 12px;
+    box-shadow: 0 0 40px rgba(0, 255, 255, 0.2), inset 0 0 30px rgba(0, 255, 255, 0.04);
+    backdrop-filter: blur(10px);
+}
+
+.tut-demo-arrows {
+    display: flex;
+    align-items: center;
+    gap: 32px;
+}
+
+.tut-demo-arrow {
+    font-family: 'Orbitron', monospace;
+    font-size: 2rem;
+    font-weight: 700;
+    color: #00ffff;
+    text-shadow: 0 0 18px rgba(0, 255, 255, 0.9);
+    opacity: 0.3;
+    transition: opacity 0.2s ease, transform 0.2s ease;
+}
+
+.tut-demo-arrow.active {
+    opacity: 1;
+    transform: scale(1.25);
+}
+
+.tut-demo-label {
+    font-family: 'Orbitron', monospace;
+    font-size: 0.7rem;
+    letter-spacing: 4px;
+    color: rgba(0, 255, 255, 0.6);
+    text-align: center;
+}
+
+.tut-demo-hands {
+    display: flex;
+    gap: 48px;
+    align-items: flex-end;
+}
+
+.tut-demo-hand {
+    font-size: 2.8rem;
+    opacity: 0.4;
+    transition: opacity 0.3s ease, transform 0.4s ease;
+    transform: translateY(0);
+}
+
+.tut-demo-hand.active {
+    opacity: 1;
+    transform: translateY(-22px);
+}
+
+/* ═══════════════════════════════════════════
+   HOLOGRAPHIC TUTORIAL HUD (bottom pill)
+═══════════════════════════════════════════ */
+
+#tutorial-hud {
+    position: fixed;
+    bottom: 28px;
+    left: 50%;
+    transform: translateX(-50%);
+    z-index: 9000;
+    opacity: 1;
+    transition: opacity 0.4s ease, transform 0.4s ease;
+    text-align: center;
+    pointer-events: none;
+    background: rgba(0, 10, 20, 0.78);
+    border: 1px solid rgba(0, 255, 255, 0.35);
+    border-radius: 50px;
+    padding: 14px 36px;
+    backdrop-filter: blur(12px);
+    -webkit-backdrop-filter: blur(12px);
+    box-shadow: 0 0 30px rgba(0, 255, 255, 0.18), inset 0 0 20px rgba(0, 255, 255, 0.04);
+    white-space: nowrap;
+}
+
+#tutorial-hud.hidden {
+    opacity: 0;
+    transform: translate(-50%, 14px);
+    pointer-events: none;
+}
+
+#tutorial-stage-label {
+    font-family: 'Orbitron', monospace;
+    font-size: 0.65rem;
+    letter-spacing: 5px;
+    color: #00ffff;
+    text-shadow: 0 0 10px rgba(0, 255, 255, 0.8);
+    text-transform: uppercase;
+    margin: 0 0 6px;
+}
+
+#tutorial-text {
+    font-family: 'Rajdhani', sans-serif;
+    font-size: clamp(1rem, 2.2vw, 1.35rem);
+    font-weight: 600;
+    letter-spacing: 1.5px;
+    color: #e8f8ff;
+    margin: 0;
+}
+
+#tutorial-text .tut-name {
+    color: #00ffff;
+    text-shadow: 0 0 8px rgba(0, 255, 255, 0.7);
+    font-weight: 700;
+}
+
+#tutorial-text .tut-key {
+    font-family: 'Orbitron', monospace;
+    font-size: 0.8em;
+    font-weight: 700;
+    padding: 2px 8px;
+    border: 1px solid rgba(0, 255, 255, 0.5);
+    border-radius: 4px;
+    background: rgba(0, 255, 255, 0.1);
+    color: #00ffff;
+}
+
 body {
+
     margin: 0;
     overflow: hidden;
     font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
@@ -781,9 +969,38 @@ body {
     transition: opacity 0.5s ease, transform 0.5s ease;
 }
 
+#tutorial-overlay {
+    position: fixed;
+    bottom: 50px;
+    left: 50%;
+    transform: translateX(-50%);
+    z-index: 9998;
+    background: rgba(0, 20, 40, 0.85);
+    /* More transparent */
+    backdrop-filter: blur(10px);
+    -webkit-backdrop-filter: blur(10px);
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    padding: 20px 40px;
+    border: 1px solid rgba(0, 255, 255, 0.4);
+    box-shadow: 0 0 30px rgba(0, 255, 255, 0.15), inset 0 0 20px rgba(0, 255, 255, 0.1);
+    border-radius: 16px;
+    gap: 10px;
+    opacity: 1;
+    transition: opacity 0.5s ease, transform 0.5s ease;
+}
+
 #personalization-overlay.perso-hide {
     opacity: 0;
     transform: scale(1.04);
+    pointer-events: none;
+}
+
+#tutorial-overlay.hidden {
+    opacity: 0;
+    transform: translate(-50%, 20px);
     pointer-events: none;
 }
 
@@ -845,12 +1062,13 @@ body {
     z-index: 1;
 }
 
-/* Glassmorphic form card */
+/* Glassmorphic form card & Tutorial content box */
 .perso-form {
     position: relative;
     z-index: 1;
     display: flex;
     flex-direction: column;
+    align-items: center;
     gap: 18px;
     width: min(480px, 90vw);
     padding: 36px 40px;
@@ -866,8 +1084,18 @@ body {
     -webkit-backdrop-filter: blur(12px);
 }
 
+.tutorial-content {
+    position: relative;
+    z-index: 1;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    width: 100%;
+}
+
 /* Top neon accent line on form card */
-.perso-form::before {
+.perso-form::before,
+.tutorial-content::before {
     content: '';
     position: absolute;
     top: -1px;
@@ -876,6 +1104,173 @@ body {
     height: 1px;
     background: linear-gradient(90deg, transparent, #00ffff, transparent);
     box-shadow: 0 0 8px #00ffff;
+}
+
+/* ═══════════════════════════════════════════
+   TUTORIAL ANNOUNCEMENT CARD
+═══════════════════════════════════════════ */
+
+#tutorial-announce {
+    position: fixed;
+    inset: 0;
+    z-index: 9998;
+    background: radial-gradient(ellipse at 50% 30%, rgba(0, 20, 40, 0.97) 0%, rgba(0, 0, 0, 0.99) 100%);
+    backdrop-filter: blur(20px);
+    -webkit-backdrop-filter: blur(20px);
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    gap: 14px;
+    opacity: 1;
+    transition: opacity 0.5s ease, transform 0.5s ease;
+}
+
+#tutorial-announce.hidden {
+    opacity: 0;
+    transform: scale(1.04);
+    pointer-events: none;
+}
+
+.tutorial-announce-desc {
+    font-family: 'Rajdhani', sans-serif;
+    font-size: clamp(1.1rem, 2.5vw, 1.6rem);
+    font-weight: 600;
+    letter-spacing: 1.5px;
+    color: #e0e0e0;
+    text-align: center;
+    max-width: 680px;
+    margin: 0;
+    position: relative;
+    z-index: 1;
+}
+
+.tutorial-icon {
+    width: 90px;
+    height: 90px;
+    color: #00ffff;
+    filter: drop-shadow(0 0 12px rgba(0, 255, 255, 0.7));
+    animation: iconFloat 2.5s ease-in-out infinite;
+    position: relative;
+    z-index: 1;
+}
+
+.tutorial-icon svg {
+    width: 100%;
+    height: 100%;
+    stroke: currentColor;
+    stroke-width: 1.5;
+    fill: none;
+}
+
+@keyframes iconFloat {
+
+    0%,
+    100% {
+        transform: translateY(0);
+    }
+
+    50% {
+        transform: translateY(-12px);
+    }
+}
+
+.tutorial-announce-bar {
+    width: min(320px, 60vw);
+    height: 3px;
+    background: rgba(0, 255, 255, 0.12);
+    border-radius: 2px;
+    overflow: hidden;
+    margin-top: 4px;
+    position: relative;
+    z-index: 1;
+}
+
+#tutorial-announce-fill {
+    height: 100%;
+    width: 0%;
+    background: linear-gradient(90deg, #00ffff, #00ff88);
+    box-shadow: 0 0 8px rgba(0, 255, 255, 0.7);
+    border-radius: 2px;
+    transition: width 0.1s linear;
+}
+
+/* ═══════════════════════════════════════════
+   TUTORIAL HUD HINT (free-play bottom bar)
+═══════════════════════════════════════════ */
+
+.tutorial-hud-inner {
+    display: flex;
+    align-items: center;
+    gap: 20px;
+    padding: 14px 28px;
+    background: rgba(0, 10, 20, 0.82);
+    border: 1px solid rgba(0, 255, 255, 0.35);
+    border-radius: 50px;
+    box-shadow: 0 0 30px rgba(0, 255, 255, 0.15), inset 0 0 20px rgba(0, 255, 255, 0.05);
+    backdrop-filter: blur(12px);
+    -webkit-backdrop-filter: blur(12px);
+}
+
+.tutorial-hud-icon {
+    font-size: 1.8rem;
+    animation: iconFloat 2.5s ease-in-out infinite;
+}
+
+.tutorial-hud-text {
+    display: flex;
+    flex-direction: column;
+    gap: 2px;
+}
+
+.tutorial-hud-label {
+    font-family: 'Orbitron', monospace;
+    font-size: 0.75rem;
+    font-weight: 700;
+    letter-spacing: 4px;
+    color: #00ffff;
+    text-shadow: 0 0 10px rgba(0, 255, 255, 0.7);
+}
+
+.tutorial-hud-sub {
+    font-family: 'Rajdhani', sans-serif;
+    font-size: 0.95rem;
+    letter-spacing: 1px;
+    color: #999;
+}
+
+.tutorial-hud-cta {
+    font-family: 'Rajdhani', sans-serif;
+    font-size: 0.9rem;
+    letter-spacing: 2px;
+    color: #555;
+    padding-left: 20px;
+    border-left: 1px solid rgba(0, 255, 255, 0.2);
+    animation: pulseAction 2s ease-in-out infinite;
+}
+
+.tutorial-hud-cta kbd {
+    font-family: 'Orbitron', monospace;
+    font-size: 0.7rem;
+    font-weight: 700;
+    padding: 3px 8px;
+    border: 1px solid rgba(0, 255, 255, 0.4);
+    border-radius: 4px;
+    background: rgba(0, 255, 255, 0.08);
+    color: #00ffff;
+    box-shadow: 0 0 8px rgba(0, 255, 255, 0.2);
+}
+
+@keyframes pulseAction {
+
+    0%,
+    100% {
+        opacity: 0.55;
+    }
+
+    50% {
+        opacity: 1.0;
+    }
 }
 
 .perso-field {
