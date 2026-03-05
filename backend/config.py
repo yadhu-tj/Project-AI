@@ -56,3 +56,12 @@ SERVER_PORT        = 5000
 CAMERA_INDEX       = 0        # OpenCV VideoCapture index (0 = default webcam)
 LOOP_SLEEP         = 0.03     # Seconds between game-loop ticks (~33 fps cap)
 CALIB_PROGRESS_FRAMES = 60   # Denominator for calib progress 0.0 → 1.0
+
+
+# ─── 7. DEVELOPER MODE ────────────────────────────────────────────────────────
+# Set DEV_SKIP_AI_QUESTIONS = True  to bypass the Gemini API entirely.
+# The backend will return a set of hardcoded fallback questions instead.
+# This avoids burning API quota during development / testing.
+#
+# ✅ To go back to live AI questions:  set DEV_SKIP_AI_QUESTIONS = False
+DEV_SKIP_AI_QUESTIONS = True
