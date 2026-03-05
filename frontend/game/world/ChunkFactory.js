@@ -25,6 +25,36 @@ export class ChunkFactory {
         };
     }
 
+    /**
+     * Recolour the shared materials for the given level (1 / 2 / 3).
+     * Because mats are shared references, every mesh that uses them updates instantly.
+     *
+     *  Level 1 — Cyan (default sci-fi blue)
+     *  Level 2 — Violet / deep purple  (things are heating up)
+     *  Level 3 — Blood red / ember     (maximum intensity)
+     */
+    setTheme(level) {
+        const themes = {
+            1: { floor: 0x111111, wall: 0x404455, neon: 0x00ffff },
+            2: { floor: 0x0d0615, wall: 0x2a1a3a, neon: 0xcc00ff },
+            3: { floor: 0x120505, wall: 0x3a0a0a, neon: 0xff2200 },
+        };
+        const t = themes[level] || themes[1];
+        this.mats.floor.color.setHex(t.floor);
+        this.mats.floor.emissive?.setHex(t.floor);
+        this.mats.wall.color.setHex(t.wall);
+        this.mats.neon.color.setHex(t.neon);
+
+        // Also recolour the scene fog/background (we store a ref when set)
+        if (this._scene) {
+            const fogColors = { 1: 0x050505, 2: 0x08010f, 3: 0x0f0101 };
+            const fogColor = fogColors[level] || fogColors[1];
+            this._scene.background?.setHex(fogColor);
+            if (this._scene.fog) this._scene.fog.color.setHex(fogColor);
+        }
+    }
+
+
     // ─── STANDARD STRAIGHT CHUNK ───────────────────────────────────────────────
     createStandardChunk() {
         const chunk = new THREE.Group();
