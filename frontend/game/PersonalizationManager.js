@@ -102,12 +102,13 @@ export class PersonalizationManager {
     }
 
     _hideOverlayAndStart() {
+        const playerName = this._nameInput.value.trim();
         // Animate overlay out
         this._overlay.classList.add('perso-hide');
         // After transition (500ms), fully remove and trigger game
         setTimeout(() => {
             this._overlay.style.display = 'none';
-            this._onComplete();
+            this._onComplete(playerName);
         }, 520);
     }
 }
