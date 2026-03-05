@@ -87,7 +87,11 @@ export class LevelManager {
         this.worldContainer.rotation.y += angle;
 
         if (characterGroup) {
-            characterGroup.rotation.y += angle;
+            // Instead of instantly snapping, we set a target rotation so CharacterController can sweep smoothly.
+            if (characterGroup.userData.targetRotY === undefined) {
+                characterGroup.userData.targetRotY = characterGroup.rotation.y;
+            }
+            characterGroup.userData.targetRotY += angle;
         }
 
         for (const chunk of this.chunks) {

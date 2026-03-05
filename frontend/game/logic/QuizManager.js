@@ -86,7 +86,16 @@ export class QuizManager {
     startQuiz() {
         if (this.active) return;
         this.active = true;
-        this.timer = CONFIG.QUIZ_TIMER_START;
+
+        // Timer scales with progression
+        if (this.gameManager.level === 1) {
+            this.timer = 30;
+        } else if (this.gameManager.level === 2) {
+            this.timer = 20;
+        } else {
+            this.timer = 15;
+        }
+
         this._armCooldown = this._ARM_COOLDOWN_FRAMES;
 
         // Draw the next question from the no-repeat deck
