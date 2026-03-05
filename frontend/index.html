@@ -13,8 +13,21 @@
 
 <body>
 
+    <!-- ═══ TITLE OVERLAY ═══ -->
+    <div id="title-overlay" class="title-overlay">
+        <span class="corner tl" style="border-color:#00ffff;"></span>
+        <span class="corner tr" style="border-color:#00ffff;"></span>
+        <span class="corner bl" style="border-color:#00ffff;"></span>
+        <span class="corner br" style="border-color:#00ffff;"></span>
+
+        <h1 class="title-main">WELCOME TO MOTION LINK.</h1>
+        <h2 class="title-sub">ESCAPE THE MAZE.</h2>
+        <h2 class="title-sub">TEST YOURSELF.</h2>
+        <p class="title-prompt">[ PRESS SPACE TO INITIATE ]</p>
+    </div>
+
     <!-- ═══ PRE-GAME PERSONALIZATION OVERLAY ═══ -->
-    <div id="personalization-overlay">
+    <div id="personalization-overlay" style="display: none; opacity: 0;">
         <span class="corner tl" style="border-color:#00ffff;"></span>
         <span class="corner tr" style="border-color:#00ffff;"></span>
         <span class="corner bl" style="border-color:#00ffff;"></span>
@@ -39,11 +52,21 @@
                     required />
             </div>
             <button id="perso-init-btn" class="perso-btn" type="submit">INITIALIZE</button>
-            <button id="view-leaderboard-btn" class="perso-btn" type="button"
-                style="margin-top: 10px; background: rgba(0,255,255,0.1); border-color: #00ffff; color: #00ffff;"
-                onclick="window.open('leaderboard.html', '_blank')">VIEW LEADERBOARD</button>
             <p id="perso-status" class="perso-status"></p>
         </form>
+    </div>
+
+    <!-- ═══ PRE-TUTORIAL OVERLAY ═══ -->
+    <div id="pre-tutorial-overlay" class="title-overlay hidden" style="display: none; opacity: 0; z-index: 9999;">
+        <span class="corner tl" style="border-color:#00ffff;"></span>
+        <span class="corner tr" style="border-color:#00ffff;"></span>
+        <span class="corner bl" style="border-color:#00ffff;"></span>
+        <span class="corner br" style="border-color:#00ffff;"></span>
+
+        <h1 class="title-main" style="font-size: clamp(2rem, 4vw, 3.5rem);">Ready for a Tutorial?</h1>
+        <h2 class="title-sub" style="text-transform: none; max-width: 800px; line-height: 1.4; margin-top: 10px;">
+            Understand the controls of the game with the next step.</h2>
+        <p class="title-prompt" style="margin-top: 60px;">[ PRESS SPACE TO CONTINUE ]</p>
     </div>
 
     <!-- ═══ HOLOGRAPHIC TUTORIAL HUD ═══ -->
@@ -182,19 +205,23 @@
         <div class="junction-divider"></div>
 
         <!-- Body text -->
-        <p class="junction-body">
-            Take either <span class="highlight">LEFT</span> or <span class="highlight">RIGHT</span> from here.
+        <p class="junction-body" style="font-size: 1.25rem;">
+            Take either <span class="highlight">LEFT</span> or <span class="highlight">RIGHT</span> when junctions
+            appear.
         </p>
-        <p class="junction-sub">
-            Both paths lead to a question.<br>
-            Only a correct answer will allow you to proceed.
+        <p class="junction-sub" style="font-size: 1.1rem; color: #b0e0e6; letter-spacing: 2px;">
+            Answer Questions to Unlock Doors.<br>
+            Each Level gets harder.
         </p>
 
         <!-- Dismiss instruction -->
-        <div class="junction-dismiss">
-            <span class="hand-icon">✋</span>
-            Raise either hand to close this message
-            <span class="hand-icon">✋</span>
+        <div class="junction-dismiss"
+            style="margin-top: 30px; padding: 15px 30px; background: rgba(0, 255, 255, 0.1); border: 1px solid #00ffff; border-radius: 8px; box-shadow: 0 0 15px rgba(0,255,255,0.2);">
+            <span class="hand-icon" style="font-size: 1.5rem; filter: drop-shadow(0 0 5px #ffcc00);">✋</span>
+            <span
+                style="font-family: 'Orbitron', monospace; font-size: 1.1rem; font-weight: 700; color: #00ffff; letter-spacing: 2px; text-transform: uppercase;">Raise
+                either hand to close this message</span>
+            <span class="hand-icon" style="font-size: 1.5rem; filter: drop-shadow(0 0 5px #ffcc00);">✋</span>
         </div>
 
     </div>
