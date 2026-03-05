@@ -22,8 +22,10 @@ export class GameManager {
         this.globalTime = "00:00.00";
         this.timerActive = false;
 
-        /** Optional callback(newLevel) fired when the level increments. */
+        /** Optional callback() fired when the level increments. */
         this.onLevelChange = null;
+        /** Optional callback() fired when the player respawns after losing a life. */
+        this.onRespawn = null;
     }
 
     // ── Converts elapsed ms into "MM:SS.cs" (centiseconds) ───────────────────
@@ -43,9 +45,9 @@ export class GameManager {
     addScore() {
         const prevLevel = this.level;
         this.score++;
-        this.level = Math.floor(this.score / 2) + 1; // 2 questions = 1 level
+        this.level = Math.floor(this.score / 3) + 1; // 3 questions = 1 level
 
-        if (this.score >= 6) {
+        if (this.score >= 9) {
             this.endTime = Date.now();
             this.gameState = "GAME_WON";
             console.log("🏆 Game Won! Final time:", this.formatTime(this.endTime - this.startTime));
@@ -153,8 +155,10 @@ export class GameManager {
             //this.startTime = Date.now();
             this.endTime = null;
             this.character.group.rotation.set(0, 0, 0);
+            this.character.group.userData.targetRotY = 0; // Fixes rapid spinning bug on respawn
             this.levelManager.resetToStart();
             this.gameState = "RUNNING";
+            if (this.onRespawn) this.onRespawn(); // Bug #6 fix: allow game_engine to reset overlay
             if (this.onFlash) this.onFlash("red", "INCORRECT - YOU LOSE A LIFE");
         }
     }
