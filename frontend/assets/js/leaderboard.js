@@ -17,10 +17,17 @@ function escapeHTML(str) {
 // Connect to the same socket URL used by the game
 const socket = io(CONFIG.SOCKET_URL);
 
+let refreshInterval;
+
 socket.on("connect", () => {
     console.log("Connected to server, requesting leaderboard...");
     if (lbStatus) lbStatus.textContent = "FETCHING RECORDS...";
     socket.emit("request_leaderboard");
+
+    // Auto-refresh the leaderboard every 10 seconds
+    refreshInterval = setInterval(() => {
+        socket.emit("request_leaderboard");
+    }, 5000);
 });
 
 socket.on("leaderboard_update", (data) => {
@@ -66,6 +73,7 @@ socket.on("leaderboard_update", (data) => {
 });
 
 socket.on("disconnect", () => {
+    clearInterval(refreshInterval); // Bug #5 fix: prevent interval stacking on reconnect
     if (lbBody) {
         lbBody.innerHTML = `
             <tr>
@@ -78,6 +86,7 @@ socket.on("disconnect", () => {
 });
 
 socket.on("connect_error", (error) => {
+    clearInterval(refreshInterval); // Bug #5 fix
     console.warn("Leaderboard socket connection error:", error);
     if (lbStatus) lbStatus.textContent = "CONNECTION ERROR";
     if (lbBody) {

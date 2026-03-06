@@ -72,8 +72,8 @@ export class PersonalizationManager {
     }
 
     _onQuestionsReady(questions) {
-        if (!Array.isArray(questions) || questions.length < 2) {
-            this._onError('Received invalid question data. Please retry.');
+        if (!Array.isArray(questions) || questions.length < 9) {
+            this._onError('Received invalid question data (too few questions). Please retry.');
             return;
         }
 

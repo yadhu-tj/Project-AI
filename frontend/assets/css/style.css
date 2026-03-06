@@ -950,6 +950,89 @@ body {
 }
 
 /* ═══════════════════════════════════════════
+   PRE-GAME TITLE OVERLAY
+═══════════════════════════════════════════ */
+.title-overlay {
+    position: fixed;
+    inset: 0;
+    z-index: 10000;
+    background: radial-gradient(ellipse at 50% 30%, rgba(0, 20, 40, 0.97) 0%, rgba(0, 0, 0, 0.99) 100%);
+    backdrop-filter: blur(20px);
+    -webkit-backdrop-filter: blur(20px);
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    gap: 15px;
+    opacity: 1;
+    transition: opacity 0.5s ease, transform 0.5s ease;
+}
+
+.title-overlay.hidden {
+    opacity: 0;
+    transform: scale(1.05);
+    pointer-events: none;
+}
+
+.title-overlay::before {
+    content: '';
+    position: absolute;
+    inset: 0;
+    background: repeating-linear-gradient(0deg,
+            rgba(0, 0, 0, 0.15),
+            rgba(0, 0, 0, 0.15) 1px,
+            transparent 1px,
+            transparent 3px);
+    pointer-events: none;
+    z-index: -1;
+}
+
+.title-main {
+    font-family: 'Orbitron', monospace;
+    font-size: clamp(2.5rem, 5vw, 4.5rem);
+    font-weight: 900;
+    color: #00ffff;
+    letter-spacing: 12px;
+    margin: 0;
+    text-shadow: 0 0 20px rgba(0, 255, 255, 0.8), 0 0 40px rgba(0, 255, 255, 0.4);
+    z-index: 2;
+    text-align: center;
+}
+
+.title-sub {
+    font-family: 'Rajdhani', sans-serif;
+    font-size: clamp(1.2rem, 2.5vw, 2rem);
+    font-weight: 600;
+    color: #e0e0e0;
+    letter-spacing: 6px;
+    margin: 0;
+    z-index: 2;
+    text-align: center;
+}
+
+.title-prompt {
+    font-family: 'Orbitron', monospace;
+    font-size: 1.2rem;
+    color: #00ff88;
+    margin-top: 40px;
+    letter-spacing: 4px;
+    z-index: 2;
+    animation: flashPrompt 1.5s infinite;
+}
+
+@keyframes flashPrompt {
+
+    0%,
+    100% {
+        opacity: 1;
+    }
+
+    50% {
+        opacity: 0.2;
+    }
+}
+
+/* ═══════════════════════════════════════════
    PRE-GAME PERSONALIZATION OVERLAY
 ═══════════════════════════════════════════ */
 
@@ -1288,26 +1371,35 @@ body {
 }
 
 .perso-input {
-    background: rgba(0, 255, 255, 0.03);
-    border: none;
-    border-bottom: 1px solid rgba(0, 255, 255, 0.3);
-    border-radius: 4px 4px 0 0;
-    color: #e0f8ff;
-    font-family: 'Rajdhani', sans-serif;
-    font-size: 1.1rem;
+    background: rgba(0, 40, 60, 0.4);
+    /* Stronger background block */
+    border: 1px solid rgba(0, 255, 255, 0.4);
+    /* Full border instead of just bottom */
+    border-radius: 6px;
+    color: #ffffff;
+    /* Brighter text color for better readability */
+    font-family: 'Orbitron', monospace;
+    /* More futuristic, legible font */
+    font-size: 1.15rem;
     font-weight: 600;
     letter-spacing: 2px;
-    padding: 10px 12px;
+    padding: 12px 14px;
+    /* Larger hit area */
     outline: none;
-    transition: border-color 0.25s ease, background 0.25s ease, box-shadow 0.25s ease;
+    transition: all 0.3s ease;
     width: 100%;
     box-sizing: border-box;
+    box-shadow: inset 0 0 10px rgba(0, 255, 255, 0.05);
+    /* Slight inner glow */
 }
 
 .perso-input::placeholder {
-    color: rgba(100, 150, 170, 0.4);
-    font-weight: 400;
-    letter-spacing: 1px;
+    color: rgba(0, 255, 255, 0.45);
+    /* Much brighter, themed placeholder */
+    font-family: 'Rajdhani', sans-serif;
+    /* Lighter font for placeholder */
+    font-weight: 500;
+    letter-spacing: 1.5px;
 }
 
 .perso-input:focus {

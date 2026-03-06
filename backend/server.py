@@ -1,4 +1,5 @@
 import eventlet
+import random
 eventlet.monkey_patch()
 
 # Load .env file — find_dotenv() walks UP the directory tree until it finds .env
@@ -137,15 +138,15 @@ def _generate_questions(topic: str) -> list:
         return _FALLBACK_QUESTIONS
 
     prompt = (
-        f'Generate exactly 10 trivia questions about the topic: "{topic}".\n'
+        f'Generate exactly 15 trivia questions about the topic: "{topic}".\n'
         'Return ONLY a valid JSON array — no markdown, no explanation, no code fences.\n'
-        'Each element must strictly follow this schema:\n'
-        '[{"text": "Question text?", "optA": "A) Option one", "optB": "B) Option two", "answer": "A" or "B"}]\n'
+        'Each element must strictly follow this schema exactly:\n'
+        '[{"text": "Question text?", "correct_answer": "the correct answer text only", "wrong_answer": "one plausible but wrong answer text only"}]\n'
         'Rules:\n'
-        '- Exactly 10 elements.\n'
-        '- "answer" must be exactly the string "A" or the string "B".\n'
-        '- optA must start with "A) " and optB must start with "B) ".\n'
-        '- The correct answer must be factually accurate.\n'
+        '- Exactly 15 elements.\n'
+        '- Do NOT include "A)" or "B)" prefixes — just plain answer text.\n'
+        '- The correct_answer must be factually accurate.\n'
+        '- The wrong_answer must be plausible but clearly incorrect.\n'
         '- Output raw JSON only.'
     )
 
@@ -157,7 +158,7 @@ def _generate_questions(topic: str) -> list:
     }
 
     resp = requests.post(url, json=payload, headers=headers, timeout=30)
-    resp.raise_for_status()  # raises HTTPError on 4xx/5xx
+    resp.raise_for_status()
 
     data = resp.json()
     try:
@@ -169,17 +170,37 @@ def _generate_questions(topic: str) -> list:
     raw = re.sub(r'^```(?:json)?\s*', '', raw, flags=re.IGNORECASE)
     raw = re.sub(r'\s*```$', '', raw)
 
-    questions = json.loads(raw)
+    questions_raw = json.loads(raw)
 
-    if not isinstance(questions, list) or len(questions) != 10:
-        raise ValueError(f"Expected 10 questions, got {len(questions) if isinstance(questions, list) else type(questions)}")
+    if not isinstance(questions_raw, list) or len(questions_raw) < 9:
+        raise ValueError(f"Expected at least 9 questions, got {len(questions_raw) if isinstance(questions_raw, list) else type(questions_raw)}")
 
-    required_keys = {"text", "optA", "optB", "answer"}
-    for i, q in enumerate(questions):
-        if not required_keys.issubset(q.keys()):
-            raise ValueError(f"Question {i} missing keys: {required_keys - set(q.keys())}")
-        if q["answer"] not in ("A", "B"):
-            raise ValueError(f"Question {i} has invalid answer: {q['answer']!r}")
+    # Backend owns A/B assignment — randomly place correct answer in A or B for each question.
+    # This fully eliminates any AI-side answer position bias.
+    questions = []
+    for i, q in enumerate(questions_raw):
+        if 'correct_answer' not in q or 'wrong_answer' not in q or 'text' not in q:
+            raise ValueError(f"Question {i} missing required keys: {q.keys()}")
+
+        correct = str(q['correct_answer']).strip()
+        wrong   = str(q['wrong_answer']).strip()
+
+        if random.random() < 0.5:
+            # Correct answer is on the left arm (Option A)
+            questions.append({
+                'text':   q['text'],
+                'optA':   f'A) {correct}',
+                'optB':   f'B) {wrong}',
+                'answer': 'A'
+            })
+        else:
+            # Correct answer is on the right arm (Option B)
+            questions.append({
+                'text':   q['text'],
+                'optA':   f'A) {wrong}',
+                'optB':   f'B) {correct}',
+                'answer': 'B'
+            })
 
     return questions
 
@@ -240,12 +261,6 @@ def load_leaderboard():
         print(f"⚠️ Error loading leaderboard: {e}")
         return []
 
-def save_leaderboard(data):
-    try:
-        with open(LEADERBOARD_FILE, 'w') as f:
-            json.put(f, indent=2)
-    except Exception as e:
-        print(f"⚠️ Error saving leaderboard: {e}")
 
 def save_leaderboard(data):
     try:

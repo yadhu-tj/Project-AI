@@ -10,7 +10,8 @@
 export const CONFIG = {
 
     // ── Network ───────────────────────────────────────────────────────────────
-    SOCKET_URL: "http://localhost:5000",
+    // If the game is loaded via file://, fallback to localhost. Otherwise use the actual hostname.
+    SOCKET_URL: window.location.protocol === "file:" ? "http://localhost:5000" : window.location.origin,
 
     // ── Gesture thresholds ────────────────────────────────────────────────────
     ARM_RAISE_THRESHOLD: 60,   // l_arm / r_arm value above which arm is "raised"

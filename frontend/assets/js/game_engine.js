@@ -174,6 +174,11 @@ gameManager.onLevelChange = (newLevel) => {
     levelManager.factory.setTheme(newLevel);
 };
 
+// Wire respawn hook: reset junction overlay so it shows on the new run
+gameManager.onRespawn = () => {
+    overlayShownOnce = false; // Bug #6 fix: show junction overlay again after respawn
+};
+
 // --- QUIZ MANAGER ---
 const quizManager = new QuizManager(gameManager, input);
 
@@ -206,11 +211,60 @@ const personalizationManager = new PersonalizationManager(
         calibOverlay.classList.add('calib-fade-out');
         setTimeout(() => calibOverlay.classList.add('hidden'), 420);
 
-        animate();
-        holographicTutorial.start(playerName || 'AGENT');
+        // Show pre-tutorial overlay
+        const preTutOverlay = document.getElementById("pre-tutorial-overlay");
+        preTutOverlay.classList.remove("hidden");
+        preTutOverlay.style.display = "flex";
+        setTimeout(() => preTutOverlay.style.opacity = "1", 50);
+
+        // Wait for spacebar to dismiss pre-tutorial and start the tutorial
+        let preTutDismissed = false;
+        const tryDismissPreTut = (e) => {
+            if (!preTutDismissed && (e.code === 'Space' || e.key === ' ')) {
+                e.preventDefault();
+                preTutDismissed = true;
+                window.removeEventListener("keydown", tryDismissPreTut);
+
+                preTutOverlay.classList.add("hidden");
+                preTutOverlay.style.opacity = "0";
+
+                setTimeout(() => {
+                    preTutOverlay.style.display = "none";
+                    animate();
+                    holographicTutorial.start(playerName || 'AGENT');
+                }, 500); // Wait for transition out
+            }
+        };
+
+        window.addEventListener("keydown", tryDismissPreTut);
     }
 );
 personalizationManager.init();
+
+// ─── Title Screen Logic ───────────────────────────────────────────────────────
+const titleOverlay = document.getElementById("title-overlay");
+const persoOverlay = document.getElementById("personalization-overlay");
+let titleDismissed = false;
+
+window.addEventListener("keydown", (e) => {
+    if (!titleDismissed && (e.code === 'Space' || e.key === ' ')) {
+        e.preventDefault();
+        titleDismissed = true;
+
+        // Hide title screen
+        titleOverlay.classList.add("hidden");
+
+        setTimeout(() => {
+            titleOverlay.style.display = "none";
+            // Show personalization
+            persoOverlay.style.display = "flex";
+            // Small delay to allow display: flex to apply before transitioning opacity
+            setTimeout(() => {
+                persoOverlay.style.opacity = "1";
+            }, 50);
+        }, 500); // Wait for transition
+    }
+});
 
 // Camera
 const camController = new CameraController(camera, character);
@@ -319,19 +373,21 @@ function restart() {
     gameManager.lives = 3;
     gameManager.endTime = null;
     gameManager.timerActive = false;
+    gameManager._prevFrameTime = null; // Bug #3 fix: prevents timer jump on restart
 
-    if (wasGameWon) {
-        gameManager.score = 0;
-        gameManager.level = 1;
-    }
+    gameManager.score = 0;
+    gameManager.level = 1;
 
     gameManager.gameState = "RUNNING";
     gameManager._lastTurn = "CENTER";
     gameManager.junctionCount = 0;
     gameManager.junctionDismissed = false;
     overlayShownOnce = false;
+    character.group.position.set(0, 0, 0);
     character.group.rotation.set(0, 0, 0);
+    character.group.userData.targetRotY = 0;
     levelManager.resetToStart();
+    levelManager.factory.setTheme(1); // Reset colors to level 1
     if (quizManager.active) quizManager._clear();
     hideGameOver();
     hideVictory();
@@ -411,11 +467,8 @@ function animate() {
     updateLivesHUD();
     updateProgressHUD();
 
-    if (levelManager.justTurned) {
-        camController.snap();
-    } else {
-        camController.update();
-    }
+    // Smooth camera tracking (no more instant snapping on turns)
+    camController.update();
 
     renderer.render(scene, camera);
 }

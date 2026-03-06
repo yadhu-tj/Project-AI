@@ -15,6 +15,15 @@ export class CharacterController {
     }
 
     update() {
+        // Smoothly rotate character to target rotation if set by LevelManager
+        if (this.group.userData.targetRotY !== undefined) {
+            this.group.rotation.y = THREE.MathUtils.lerp(
+                this.group.rotation.y,
+                this.group.userData.targetRotY,
+                0.08
+            );
+        }
+
         // Delegate all movement & animation to the Animator
         this.animator.update(this.input);
     }
